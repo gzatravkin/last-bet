@@ -169,6 +169,7 @@ button{font:inherit;color:inherit}
   padding:max(28px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 28px max(16px,env(safe-area-inset-left,0px))}
 .card{background:var(--screen);border:2px solid var(--phos-line);border-radius:14px;max-width:720px;width:100%;padding:24px;display:flex;flex-direction:column;gap:16px;color:var(--phos)}
 .card h2{font:13px var(--f-display);line-height:1.7;margin:0;color:var(--yellow)}
+.shead{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .card p{margin:0;max-width:62ch;font-size:15px;line-height:1.55}
 .card.paperc{background:none;border:none;padding:0;max-width:900px}
 .starts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -241,6 +242,7 @@ function pct(x,d=1){const v=x*100;return(v>=0?'+':'−')+Math.abs(v).toFixed(d)+
 function ppm(x){return Math.abs(x*100).toFixed(1)+'%'}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function plural(n,a,b,c){const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c}
+function msg(k,...p){return p.length?{k,p}:{k}}
 
 const MODELS={
   gemma:{name:'Gemma 3 27B',q:1.0,v:1.0,from:0,e512:false,about:'плотная 27B, видит картинки'},
@@ -359,8 +361,8 @@ const PROBEN={};PROBES.forEach(p=>PROBEN[p.id]=p);
 const COPY=['gridlines','goalturn','hyplog','fewshot','t06'];
 const M1=['interact','memlvl','diffimg','ctx110','thinkmore','review','cblind','recolor'];
 const M2W=['photo','helpers','forum','duel','forks','moreimg8','ctx150'];
-const FAILS=['vLLM упал: переполнился пул KV','в датасете не оказалось патчей','900 секунд без единой строки в логе','ядро умеет только BF16','качество поплыло, откатили'];
-const FORUM_FLUFF=['Фазан пишет, что у них картинки x10 и 110 линий.','Хост подтвердил: публичные 25 игр проще скрытых.','Кто-то выложил разбор шума: одна и та же пуля даёт ±1.3.','Спорят, считать ли RESET действием. Считать.','Новичок спрашивает, где взять движок скрытых игр. Нигде.'];
+const FAILS=['fail0','fail1','fail2','fail3','fail4'];
+const FORUM_FLUFF=['ff0','ff1','ff2','ff3','ff4'];
 const NAMES=['Фазан','duck_herder','Zero-Shot Zebras','tile_whisperer','monte_carlo_moth','ARCtic Fox','pixel_priest','Team Dropout','undo undo undo','ACTION7','random_walkers','kv_cache_me_outside','eight_bit_owl','lane_110','MambaManager OOM','prefix_hit','Колмогоров и сыновья','Ленивые эксперты','Квантованный енот','ночной деплой','Grid Goblins','the reconsiderers','RESET is an action','squared denominator','level_idx + 1','Tufted Puffins','sparse but smart','Пятничный пуш','human baseline','QSA enjoyers','ExactFit','Hot Swap Heroes','Saturday Quota','no internet no problem','Tokens per Level','Bayesian Badgers','Плато','Гусь-исследователь','Ctrl+Z','BFS is all you need','Абстракция и Ко','Exploration Bonus','Ducks All The Way Down','cosine annealed','Spiral Eyes','Prefill Pirates','Mixture of Lemurs','Router Drift','Speculative Sloths','graphs_on','Кэш промахнулся','Holdout Hounds','Fifty-Five Hidden','Sokoban Survivors','Tiny Recursion','agentic alpaca','ГПУ-часы','QUEUED forever','dir-mode zip','Nine Hours Exactly','Ночной дозор','Плотные и злые','torch.compile ждёт','Сеточники','Pixel Peepers','LoRA Rangers','int4 or bust','Overfit Owls','The Undoers'];
 
 function newGame(start,nick){
@@ -378,10 +380,10 @@ function newGame(start,nick){
   else{dp.slice(0,3).forEach(id=>addDef(id));COPY.forEach(id=>preCard(id))}
   for(const id of shuffle(M1.slice()).slice(0,4))reveal(G.knobs[id]);
   makeNPCs();
-  G.say=`Привет, ${name}! Milestone 1 позади, лидеры борда на 6–7 очках. Наш робот собран из чужого ноутбука. Каждую неделю я предложу три дела, а ты выберешь два.`;
-  if(start==='scratch')G.say=`Привет, ${name}! Пишем с нуля: в роботе пока три дыры. Закроем их, потом начнём набирать карты.`;
-  G.lines=['Цель: финал 2 ноября, 18 недель.','Карты в роботе меняют счёт на скрытый процент. Узнать его можно только тестами, а они шумят.','Вечером в пятницу решаем, что сабмитить всю неделю.'];
-  if(start==='post'){G.lines.push('Пост «ищу команду» висит на форуме. Ответы придут на днях.');maybeOffer()}
+  G.say=msg('hi',{nm:name});
+  if(start==='scratch')G.say=msg('hiScratch',{nm:name});
+  G.lines=[msg('lGoal'),msg('lCards'),msg('lFriday')];
+  if(start==='post'){G.lines.push(msg('lPost'));maybeOffer()}
   makeOpts();
 }
 function addKnob(d){
@@ -420,8 +422,8 @@ function locked(k){return !!k.needS&&(!G.speedOpen||serveS()<k.needS)}
 function glitchP(){return clamp((G.ctx-0.5)*1.2,0,0.6)}
 function honest(k){if(!k.tests.length)return null;const ts=k.tests.filter(t=>t.m===G.model);const use=ts.length?ts:k.tests;let w=0,s=0;
   for(const t of use){const wi=1/(t.sd*t.sd);w+=wi;s+=wi*t.est}const m=s/w,se=Math.sqrt(1/w);return{m,se,sig:Math.abs(m)>2*se?Math.sign(m):0,n:use.length}}
-function claim(v,lie){if(lie){const m=v.sig===0?(v.m>=0?1:-1)*Math.max(Math.abs(v.m)*2.2,2.3*v.se):-v.m;return m>0?`точно помогает, ${pct(m,0)}. Оставляем!`:`точно вредит, ${pct(m,0)}. Выкидываем!`}
-  return v.sig>0?`помогает, ${pct(v.m,0)}.`:v.sig<0?`вредит, ${pct(v.m,0)}.`:`пока шум, ${pct(v.m,0)} ± ${ppm(2*v.se)}.`}
+function claim(v,lie){if(lie){const m=v.sig===0?(v.m>=0?1:-1)*Math.max(Math.abs(v.m)*2.2,2.3*v.se):-v.m;return m>0?msg('cLieUp',pct(m,0)):msg('cLieDn',pct(m,0))}
+  return v.sig>0?msg('cUp',pct(v.m,0)):v.sig<0?msg('cDn',pct(v.m,0)):msg('cNoise',pct(v.m,0),ppm(2*v.se))}
 function addTest(k,type){const B=base(k);const sd={duck:0.05,ab:0.03,pair:0.015}[type];const bias=type==='duck'?B.duckB:type==='ab'?B.rehB:B.rehB*0.2;
   const est=knobDelta(k.id)+bias+gauss()*sd;k.tests.push({w:G.week,t:type,est,sd,m:G.model});G.stats.tests++;return est}
 function rankOf(){return ranking().findIndex(r=>r.me)+1}
@@ -431,21 +433,21 @@ function techAvail(id){const T=TECHN[id],t=G.tech[id];return G.speedOpen&&t.st==
 function makeOpts(){
   const P=[];const add=(w,o)=>{o.cost=o.cost||1;if(o.cost<=G.left)P.push({w,o})};
   const ideas=handIdeas().map(id=>G.knobs[id]).filter(k=>!locked(k));
-  shuffle(ideas).slice(0,3).forEach(k=>add(3,{act:'write',x:k.id,t:`Написать «${k.name}»`,w:`Новая карта в робота. По ощущениям ${pct(k.prior,0)}.`}));
+  shuffle(ideas).slice(0,3).forEach(k=>add(3,{act:'write',x:k.id}));
   const cards=[...G.robot,...G.hand].map(id=>G.knobs[id]).filter(k=>k.status==='ready');
   const pair=techOn('lanes45');
-  cards.filter(k=>k.tests.length<5).sort((a,b)=>a.tests.length-b.tests.length).slice(0,3).forEach(k=>add(2.5,{act:pair?'pair':'duck',x:k.id,t:`${pair?'Точный тест':'Тест на утках'}: «${k.name}»`,w:pair?'Парные форки, шум ±1.5%.':'Дёшево, шум ±5%, и утки немного врут.'}));
-  const abk=cards.filter(k=>k.tests.length).sort((a,b)=>honest(b).se-honest(a).se)[0];if(abk&&!pair)add(1.4,{act:'ab',x:abk.id,t:`A/B-репетиция: «${abk.name}»`,w:'Точнее уток, шум ±3%. Займёт оба дела.',cost:2});
-  if(handIdeas().length<5)add(2,{act:'ideas',t:'Придумать новые идеи',w:'Две новые карты в руку.'});
-  add(1.6,{act:'read',t:'Прочитать запросы целиком',w:'Найду и починю, что сломано.'});
-  const hole=G.defects.find(d=>d.known&&!d.fixed);if(hole)add(5,{act:'hole',x:hole.id,t:`Закрыть дыру: ${hole.name.toLowerCase()}`,w:'Без этого агент почти слепой.'});
-  if(G.ctx>0.6)add(2.5,{act:'compact',t:'Сжать мой контекст',w:`Контекст ${Math.round(G.ctx*100)}%, я начинаю путаться.`});
-  if(G.speedOpen)shuffle(TECH.filter(t=>techAvail(t.id))).slice(0,2).forEach(t=>add(3,{act:'tech',x:t.id,t:`Ускорить серв: ${t.name}`,w:`${t.spd!==1?'Серв ×'+t.spd+'. ':''}${t.p>=0.7?'Риск низкий.':t.p>=0.5?'Риск средний.':'Риск высокий.'}`}));
-  if(MODELS.q38.from<=wkDays(G.week)[0]&&G.model!=='q38')add(2,{act:'model',x:'q38',t:'Переехать на Qwen3.8',w:'Новая модель заметно сильнее. Часть карт может сломаться.'});
-  else if(G.week>=1&&G.week<=6&&rnd()<0.35){const m=pick(['qwen32','a3b','oss'].filter(m=>m!==G.model));add(1,{act:'model',x:m,t:`Сменить модель на ${MODELS[m].name}`,w:`${MODELS[m].about[0].toUpperCase()+MODELS[m].about.slice(1)}. Часть карт может сломаться.`})}
-  if(G.week>=W.RTX&&!G.rtx)add(2,{act:'rtx',t:'Перенести ноутбук на RTX 6000',w:'Серв ×1.25.'});
-  if(rnd()<glitchP()){if(rnd()<0.5)add(5,{act:'batched',t:'Поднять max_num_batched_tokens',w:'Мы этого никогда не пробовали! +10% скорости.',lie:true});
-    else{const t=cards.filter(k=>k.tests.length>=2&&k.alN<k.al.length);if(t.length)add(5,{act:'alias',x:pick(t).id,t:'Новая идея, которой у нас не было',w:'Мы такого никогда не пробовали, уверен!',lie:true})}}
+  cards.filter(k=>k.tests.length<5).sort((a,b)=>a.tests.length-b.tests.length).slice(0,3).forEach(k=>add(2.5,{act:pair?'pair':'duck',x:k.id}));
+  const abk=cards.filter(k=>k.tests.length).sort((a,b)=>honest(b).se-honest(a).se)[0];if(abk&&!pair)add(1.4,{act:'ab',x:abk.id,cost:2});
+  if(handIdeas().length<5)add(2,{act:'ideas'});
+  add(1.6,{act:'read'});
+  const hole=G.defects.find(d=>d.known&&!d.fixed);if(hole)add(5,{act:'hole',x:hole.id});
+  if(G.ctx>0.6)add(2.5,{act:'compact',c:Math.round(G.ctx*100)});
+  if(G.speedOpen)shuffle(TECH.filter(t=>techAvail(t.id))).slice(0,2).forEach(t=>add(3,{act:'tech',x:t.id}));
+  if(MODELS.q38.from<=wkDays(G.week)[0]&&G.model!=='q38')add(2,{act:'model',x:'q38'});
+  else if(G.week>=1&&G.week<=6&&rnd()<0.35){const m=pick(['qwen32','a3b','oss'].filter(m=>m!==G.model));add(1,{act:'model',x:m})}
+  if(G.week>=W.RTX&&!G.rtx)add(2,{act:'rtx'});
+  if(rnd()<glitchP()){if(rnd()<0.5)add(5,{act:'batched',lie:true});
+    else{const t=cards.filter(k=>k.tests.length>=2&&k.alN<k.al.length);if(t.length)add(5,{act:'alias',x:pick(t).id,lie:true})}}
   const out=[],used=new Set();
   while(out.length<3&&P.length){const tw=P.reduce((a,p)=>a+p.w,0);let r=rnd()*tw,i=0;for(;i<P.length-1;i++){r-=P[i].w;if(r<=0)break}
     const o=P.splice(i,1)[0].o;const key=o.act+':'+(o.x||'');if(used.has(key))continue;used.add(key);out.push(o)}
@@ -457,24 +459,24 @@ function doOpt(i){
   const k=o.x&&G.knobs[o.x];
   switch(o.act){
     case'write':{k.status='ready';const p=0.08+0.25*Math.max(0,G.ctx-0.4);if(rnd()<p){k.bug=rnd()<0.6?'dead':'broken';G.stats.bugs++}
-      if(G.robot.length<6&&!(k.g&&G.robot.some(x=>G.knobs[x].g===k.g))){G.hand=G.hand.filter(x=>x!==k.id);G.robot.push(k.id);G.say=`Готово, «${k.name}» стоит в роботе. Тесты зелёные.`}
-      else G.say=`Готово, «${k.name}» лежит в руке: в роботе нет места. Вынь что-нибудь, если хочешь её поставить.`;break}
+      if(G.robot.length<6&&!(k.g&&G.robot.some(x=>G.knobs[x].g===k.g))){G.hand=G.hand.filter(x=>x!==k.id);G.robot.push(k.id);G.say=msg('writeRobot',{kn:k.id})}
+      else G.say=msg('writeHand',{kn:k.id});break}
     case'duck':case'ab':case'pair':{addTest(k,o.act);const v=honest(k);const lie=rnd()<glitchP();if(lie)G.stats.lies++;
-      G.say=`${o.act==='duck'?'Утки':o.act==='ab'?'Репетиция':'Точный тест'} по «${k.name}»: ${claim(v,lie)}`;break}
-    case'ideas':{const pool=shuffle(hiddenPool()).slice(0,2);pool.forEach(reveal);G.say=pool.length?`Две идеи в руке: «${pool.map(x=>x.name).join('» и «')}».`:'Идеи кончились.';break}
-    case'alias':{const a=makeAlias(o.x);G.say=a?`Новая идея: «${a.name}». Мы такого никогда не пробовали!`:'Ничего нового не придумал.';break}
-    case'read':{const found=[];const hid=G.defects.filter(d=>!d.fixed&&!d.known);if(hid.length&&rnd()<0.5){const d=pick(hid);d.fixed=true;found.push(d.name.toLowerCase())}
-      for(const id of [...G.robot,...G.hand]){const c=G.knobs[id];if(c.bug&&rnd()<0.6){c.bug=null;found.push(`«${c.name}» не доходила до модели`)}}
-      G.say=found.length?`Нашёл и починил: ${found.join('; ')}.`:'Прочитал три запроса целиком. Всё на месте.';break}
-    case'hole':{const d=G.defects.find(x=>x.id===o.x);if(d)d.fixed=true;G.say=`Закрыл: ${d.name.toLowerCase()}. Теперь агент это видит.`;break}
-    case'compact':G.ctx=0.12;G.say='Контекст сжат. Голова ясная.';break;
+      G.say=msg('testSay',o.act,{kn:k.id},claim(v,lie));break}
+    case'ideas':{const pool=shuffle(hiddenPool()).slice(0,2);pool.forEach(reveal);G.say=pool.length?msg('ideasGot',pool.map(x=>({kn:x.id}))):msg('ideasNone');break}
+    case'alias':{const a=makeAlias(o.x);G.say=a?msg('aliasGot',{kn:a.id}):msg('aliasNone');break}
+    case'read':{const found=[];const hid=G.defects.filter(d=>!d.fixed&&!d.known);if(hid.length&&rnd()<0.5){const d=pick(hid);d.fixed=true;found.push({dl:d.id})}
+      for(const id of [...G.robot,...G.hand]){const c=G.knobs[id];if(c.bug&&rnd()<0.6){c.bug=null;found.push(msg('readCard',{kn:c.id}))}}
+      G.say=found.length?msg('readFound',found):msg('readNone');break}
+    case'hole':{const d=G.defects.find(x=>x.id===o.x);if(d)d.fixed=true;G.say=msg('holeDone',{dl:d.id});break}
+    case'compact':G.ctx=0.12;G.say=msg('compactDone');break;
     case'tech':{const T=TECHN[o.x],t=G.tech[o.x];const p=T.p<=0?0:Math.min(0.92,T.p+0.15*t.tries);
-      if(rnd()<p){t.st='on';G.say=`«${T.name}» работает${T.spd!==1?`: серв ×${T.spd}`:''}.`}else{t.tries++;G.say=`«${T.name}» не взлетела: ${T.fail||pick(FAILS)}. Можно попробовать ещё.`}break}
-    case'model':switchModel(o.x);G.say=`Переехали на ${MODELS[o.x].name}. Старые замеры сделаны на другой модели.`;break;
-    case'rtx':G.rtx=true;G.say='Ноутбук теперь получает RTX 6000. Серв ×1.25.';break;
-    case'batched':G.say='Подняли max_num_batched_tokens. Выигрыш ноль, серв тот же.';break;
+      if(rnd()<p){t.st='on';G.say=msg('techOk',{tn:T.id},T.spd)}else{t.tries++;G.say=msg('techFail',{tn:T.id},T.fail?{tf:T.id}:msg(pick(FAILS)))}break}
+    case'model':switchModel(o.x);G.say=msg('moved',{md:o.x});break;
+    case'rtx':G.rtx=true;G.say=msg('rtxDone');break;
+    case'batched':G.say=msg('batchedDone');break;
   }
-  if(G.ctx>=1){G.ctx=0.12;G.say+=' Контекст переполнился, я его сжал.'}
+  if(G.ctx>=1){G.ctx=0.12;G.say=[G.say,msg('ctxOver')]}
   makeOpts();return true;
 }
 function switchModel(m){G.model=m;for(const id of [...G.robot,...G.hand]){const k=G.knobs[id];if(k.status==='ready'&&!k.bug&&rnd()<0.12){k.bug='dead';G.stats.bugs++}}}
@@ -485,11 +487,11 @@ function unslotCard(id){if(!G.robot.includes(id))return false;G.robot=G.robot.fi
   while(G.hand.length>8){const old=G.hand.find(x=>G.knobs[x].status==='idea');if(!old)break;G.hand=G.hand.filter(x=>x!==old);G.knobs[old].status='hidden'}return true}
 
 function planOpts(){
-  const last=G.week>=WEEKS-1;const O=[{kind:'agent',t:last?'Последняя ставка: текущий робот':'Всю неделю текущий робот',w:'Семь сабмитов, просто счёт на борд.'}];
+  const last=G.week>=WEEKS-1;const O=[{kind:'agent',last}];
   if(last)return O;
   const c=G.robot.map(id=>G.knobs[id]).sort((a,b)=>(honest(b)?honest(b).se:1)-(honest(a)?honest(a).se:1))[0];
-  if(c)O.push({kind:'test',x:c.id,t:`Сабмит-тест «${c.name}»`,w:'3 дня с картой, 4 без. Честно, на скрытых играх, но шумно.'});
-  const p=PROBES.find(p=>G.probeDone[p.id]==null);if(p)O.push({kind:'probe',x:p.id,t:`Чит-проба: if ${p.q} → fail`,w:`Узнаем, сколько таких игр и как там работают карты. Риск бана ${Math.round(banP()*100)}%.`});
+  if(c)O.push({kind:'test',x:c.id});
+  const p=PROBES.find(p=>G.probeDone[p.id]==null);if(p)O.push({kind:'probe',x:p.id,ban:Math.round(banP()*100)});
   return O;
 }
 function banP(){return Math.min(0.6,0.07+0.05*G.probes)}
@@ -518,29 +520,29 @@ function runWeek(i){
 }
 function newWeek(){
   G.week++;
-  if(G.week>=WEEKS){G.screen='final';G.fpicks=finalDefault();G.say='Всё, сабмиты закрыты. Выбери два финальных, и вскроем приватный борд.';return}
+  if(G.week>=WEEKS){G.screen='final';G.fpicks=finalDefault();G.say=msg('finalSay');return}
   G.picks=2+Math.min(2,G.mates.length);G.left=G.picks;G.lines=[];const L=G.last;const rk=rankOf();
-  if(L.test)G.lines.push(`Сабмит-тест «${L.test.name}»: с картой ${L.test.mw.toFixed(2)}, без ${L.test.mo.toFixed(2)}, разница ${pct(L.test.est,0)} ± ${ppm(2*L.test.sd)}.`);
-  if(L.probe)G.lines.push(`Проба «${L.probe.q}»: таких игр в публичных 55 около ${L.probe.n}. Бан не прилетел. Связанные карты получили точный замер.`);
-  if(L.dots.some(x=>x.kind==='err'))G.lines.push(`Kaggle потерял ${L.dots.filter(x=>x.kind==='err').length} сабмитов с ошибкой скоринга.`);
+  if(L.test)G.lines.push(msg('lTest',{kn:L.x},L.test.mw.toFixed(2),L.test.mo.toFixed(2),pct(L.test.est,0),ppm(2*L.test.sd)));
+  if(L.probe)G.lines.push(msg('lProbe',{pq:L.x},L.probe.n));
+  if(L.dots.some(x=>x.kind==='err'))G.lines.push(msg('lErr',L.dots.filter(x=>x.kind==='err').length));
   const w=G.week;
   if(w===W.MARIO)G.queue.push('mario');if(w===W.QWEN)G.queue.push('qwen');if(w===W.RTX)G.queue.push('rtx');if(w===W.PAPER)G.queue.push('paper');
   if(w===W.M2){G.m2={rank:rk,best:G.best};G.queue.push('m2')}
-  if(w===W.M2+1){for(const id of M2W)reveal(G.knobs[id]);G.lines.push('Вышли райтапы Milestone 2: в руке мульти-агентные идеи. Им нужен быстрый серв.')}
+  if(w===W.M2+1){for(const id of M2W)reveal(G.knobs[id]);G.lines.push(msg('lM2w'))}
   if(w===W.FAZAN)G.queue.push('fazan');if(w===W.MERGE)G.queue.push('merge');if(w===W.BREAK)G.queue.push('kbreak');
   if(rnd()<0.35)randomEvent();
   maybeOffer();
   if(w>=W.PAPER)makePaper();
   const dr=G.rankPrev-rk;
-  G.say=L.plan==='probe'?'Пронесло. Но каждая следующая проба опаснее.':dr>=5?`Отличная неделя: мы поднялись на ${dr} ${plural(dr,'место','места','мест')}!`:dr>0?`Чуть подросли: плюс ${dr} ${plural(dr,'место','места','мест')}.`:dr<0?`Нас обошли: минус ${-dr} ${plural(-dr,'место','места','мест')}. Другие тоже не спят.`:'Стоим на месте. Шум борда съел нашу неделю.';
-  if(w===WEEKS-1)G.say+=' Это последняя неделя сезона.';
+  G.say=L.plan==='probe'?msg('drProbe'):dr>=5?msg('drBig',dr):dr>0?msg('drUp',dr):dr<0?msg('drDn',-dr):msg('drFlat');
+  if(w===WEEKS-1)G.say=[G.say,msg('lastWeek')];
   makeOpts();G.screen='news';
 }
 function randomEvent(){const E=[
-  ()=>{const k=pick(hiddenPool());if(!k)return;reveal(k);G.lines.push(`Форум: кто-то хвалит «${k.name}». Карта в руке.`)},
-  ()=>{const n=G.npcs[5+Math.floor(rnd()*20)];if(!n)return;n.steps.push({d:wkDays(G.week)[0],m:1.2+0.15*rnd()});G.lines.push(`${n.name} резко поднялись на борде. Что они нашли?`)},
-  ()=>{if(G.left>1){G.left--;G.lines.push('Протух токен Kaggle, полдня на починку: на этой неделе на одно дело меньше.')}},
-  ()=>{if(G.mates.length){const m=pick(G.mates);const c=G.robot.map(id=>G.knobs[id])[0];if(c){addTest(c,'duck');G.lines.push(`${m.name} прогнали «${c.name}» на своём стенде. Замер в карте.`)}}}
+  ()=>{const k=pick(hiddenPool());if(!k)return;reveal(k);G.lines.push(msg('lPraise',{kn:k.id}))},
+  ()=>{const n=G.npcs[5+Math.floor(rnd()*20)];if(!n)return;n.steps.push({d:wkDays(G.week)[0],m:1.2+0.15*rnd()});G.lines.push(msg('lJump',{nm:n.name}))},
+  ()=>{if(G.left>1){G.left--;G.lines.push(msg('lToken'))}},
+  ()=>{if(G.mates.length){const m=pick(G.mates);const c=G.robot.map(id=>G.knobs[id])[0];if(c){addTest(c,'duck');G.lines.push(msg('lMate',{nm:m.name},{kn:c.id}))}}}
  ];pick(E)()}
 function maybeOffer(){
   if(G.week>W.MERGE||G.offer||G.mates.length>=7)return;const rk=rankOf();
@@ -549,24 +551,24 @@ function maybeOffer(){
   const c=rows.map((r,i)=>({r,i:i+1})).filter(x=>!x.r.me&&x.i>=lo&&x.i<=hi);if(!c.length)return;G.offer={name:pick(c).r.name};G.queue.push('offer');
 }
 function mergeNpc(n){if(!n||G.mates.length>=7)return;G.npcs=G.npcs.filter(x=>x!==n);G.mates.push({name:n.name});if(n.best>G.best)G.best=n.best;
-  const k=pick(hiddenPool());if(k)reveal(k);G.lines.push(`${n.name} теперь в команде: плюс одно дело в неделю${k?`, и они принесли идею «${k.name}»`:''}.`)}
+  const k=pick(hiddenPool());if(k)reveal(k);G.lines.push(msg('lMerged',{nm:n.name},k?{kn:k.id}:null))}
 function acceptOffer(){const n=G.offer&&G.npcs.find(x=>x.name===G.offer.name);G.offer=null;mergeNpc(n)}
 function fazanSwitch(){['cache','graphs','kv8','prefix','mtp','rotation'].forEach(id=>G.tech[id].st='on');switchModel('q38');
   G.defects=G.defects.filter(d=>d.fixed);shuffle(DEFS.map(d=>d[0]).filter(id=>!G.defects.some(x=>x.id===id))).slice(0,2).forEach(id=>G.defects.push({id,name:DEFN[id].name,known:false,fixed:false}));
   for(const id of [...G.robot,...G.hand]){const k=G.knobs[id];if(k.status==='ready'&&!k.bug&&rnd()<0.3){k.bug='dead';G.stats.bugs++}}
-  G.say='Пересели на базу Фазана: его серв и Qwen3.8. Часть наших карт могла не доехать, стоит прочитать запросы.'}
+  G.say=msg('fazanSwitched')}
 const EV={
-  mario:{t:'Игра, похожая на Марио',x:()=>'В публичных 25 нашлась игра, похожая на Марио. Половина форума пишет под неё хаки, другая половина советует просто выходить из таких игр.',c:[['Взять обе идеи в руку',()=>{reveal(G.knobs.mariohack);reveal(G.knobs.marioexit)}]]},
-  qwen:{t:'Вышла Qwen3.8 Next Flash',x:()=>'Новая модель на 512 экспертов. На форуме пишут о скачке на десятки процентов. При переезде часть карт может сломаться.',c:[['Переезжаем',()=>{switchModel('q38');G.say='Переехали на Qwen3.8. Старые замеры сделаны на другой модели.'}],['Пока нет',()=>{}]]},
-  rtx:{t:'RTX 6000 в пуле',x:()=>'Kaggle добавил RTX 6000 для этого соревнования. Ноутбук без привязки к соревнованию по-прежнему получает T4.',c:[['Переносим ноутбук',()=>{G.rtx=true}],['Не сейчас',()=>{}]]},
-  paper:{t:'У соревнования появилась газета',x:()=>'Кто-то из участников выпускает газету о борде: рывки, смены лидеров, поломки Kaggle. Новый номер каждый понедельник.',c:[['Открыть',()=>{G.ui.modal='paper';G.ui.pi=G.papers.length-1}],['Потом',()=>{}]]},
-  m2:{t:'Milestone 2 закрыт',x:()=>`Мы <b>#${G.m2.rank}</b>. ${G.m2.rank<=3?'Призовое место! Осталось открыть ноутбук под CC-BY 4.0.':'Призы ушли топ-3.'} Разбор лидеров: агенты у всех похожие, а серв у топа вдвое быстрее.`,c:[['Открыть путь скорости',()=>{G.speedOpen=true;G.say='Путь скорости открыт. Теперь я буду предлагать ускорения серва.'}]]},
-  fazan:{t:'Фазан выложил ноутбук',x:()=>'Публичный ноутбук Фазана: свой быстрый серв, Qwen3.8, картинки x10. Можно пересесть на его базу. В чужом коде будут свои дефекты.',c:[['Остаться на своём',()=>{}],['Пересесть на базу Фазана',fazanSwitch]]},
-  merge:{t:'Последняя неделя слияний',x:()=>'В воскресенье составы команд замораживаются. Кто не нашёл команду сейчас, идёт к финалу как есть.',c:[['Понятно',()=>{}]]},
-  kbreak:{t:'Kaggle ломается',x:()=>'Kaggle признал проблемы со скорингом. На этой неделе часть сабмитов упадёт с ошибкой. Продления дедлайна не будет.',c:[['Понятно',()=>{}]]},
-  offer:{t:'Предложение объединиться',x:()=>{const n=G.offer&&G.npcs.find(x=>x.name===G.offer.name);return n?`<b>${esc(n.name)}</b> (#${ranking().findIndex(r=>r.name===n.name)+1}, лучший ${n.best.toFixed(2)}) зовут в одну команду. Тиммейт даёт ещё одно дело в неделю, а команде засчитывается лучший сабмит из двух.`:'Предложение отозвано.'},c:[['Объединиться',acceptOffer],['Отказаться',()=>{G.offer=null}]]}
+  mario:{c:[()=>{reveal(G.knobs.mariohack);reveal(G.knobs.marioexit)}]},
+  qwen:{c:[()=>{switchModel('q38');G.say=msg('moved','Qwen3.8')},()=>{}]},
+  rtx:{c:[()=>{G.rtx=true},()=>{}]},
+  paper:{c:[()=>{G.ui.modal='paper';G.ui.pi=G.papers.length-1},()=>{}]},
+  m2:{c:[()=>{G.speedOpen=true;G.say=msg('speedOpen')}]},
+  fazan:{c:[()=>{},fazanSwitch]},
+  merge:{c:[()=>{}]},
+  kbreak:{c:[()=>{}]},
+  offer:{c:[acceptOffer,()=>{G.offer=null}]}
 };
-function chooseEv(i){const id=G.queue.shift();const e=EV[id];if(e&&e.c[+i])e.c[+i][1]();makeOpts()}
+function chooseEv(i){const id=G.queue.shift();const e=EV[id];if(e&&e.c[+i])e.c[+i]();makeOpts()}
 
 function pubNB(d){return d<DAY.PUB?2.2:d<62?3.6:d<DAY.M2W+4?8.5:d<DAY.FAZAN?13:24}
 function npcTrue(n,d){let s=n.base*Math.exp(n.r*d);for(const st of n.steps)if(d>=st.d)s*=st.m;if(n.copier)s=Math.max(s,pubNB(d-n.lag)*n.cq);return Math.min(s,92)}
@@ -588,23 +590,24 @@ function makePaper(){
   const rows=ranking();const now={},was={};rows.forEach((r,i)=>now[r.name]=i+1);[...rows].sort((a,b)=>b.y-a.y).forEach((r,i)=>was[r.name]=i+1);
   const w=G.week,d=wkDays(w)[0],me=G.team,f=x=>x.toFixed(2),top=rows[0],topY=[...rows].sort((a,b)=>b.y-a.y)[0];
   const movers=rows.slice(0,30).filter(r=>!r.me).map(r=>({r,g:was[r.name]-now[r.name]})).filter(x=>x.g>0).sort((a,b)=>b.g-a.g);
-  const SP={[W.PAPER]:['Первый номер',`Сезон глазами борда: наверху ${top.name}`,`Первое место у ${top.name} с ${f(top.best)}. Мы будем писать о борде каждый понедельник. Места предварительные до вскрытия приватного борда.`],
-    [W.M2]:['Milestone 2',`${top.name} забирает первый приз Milestone 2`,`Подиум на 30 сентября: ${rows.slice(0,3).map(r=>r.name+' '+f(r.best)).join(', ')}.`],
-    [W.FAZAN]:['Форум','Фазан открывает карты: публичный ноутбук с быстрым сервом','Хвост борда получил базу, на которой можно расти до конца сезона.'],
-    [W.MERGE]:['Составы','Последняя неделя слияний: команды ищут друг друга','В воскресенье составы замораживаются.'],
-    [W.BREAK]:['Kaggle','Kaggle признаёт проблемы с ранами. Кто вернёт командам потерянные дни?','Часть сабмитов падает с ошибкой скоринга. Продления не будет.']};
+  const N=x=>({nm:x}),pod=rows.slice(0,3).map(r=>[N(r.name),f(r.best)]);
+  const SP={[W.PAPER]:[msg('ppK1'),msg('ppH1',N(top.name)),msg('ppT1',N(top.name),f(top.best))],
+    [W.M2]:[msg('ppK2'),msg('ppH2',N(top.name)),msg('ppT2',pod)],
+    [W.FAZAN]:[msg('ppK3'),msg('ppH3'),msg('ppT3')],
+    [W.MERGE]:[msg('ppK4'),msg('ppH4'),msg('ppT4')],
+    [W.BREAK]:[msg('ppK5'),msg('ppH5'),msg('ppT5')]};
   let lead;
   if(SP[w])lead={k:SP[w][0],h:SP[w][1],t:SP[w][2]};
-  else if(now[me]===1&&was[me]!==1)lead={k:'Сенсация',h:`${me} возглавляет борд`,t:`Лучший сабмит ${f(G.best)}.`};
-  else if(now[me]<=30&&was[me]-now[me]>=4)lead={k:'Подъём',h:`${me} поднимается с ${was[me]}-го на ${now[me]}-е место`,t:`Лучший сабмит команды ${f(G.best)}.`};
-  else if(top.name!==topY.name)lead={k:'Смена лидера',h:`${top.name} обходит ${topY.name} и выходит на первое место`,t:`${f(top.best)} на первой строчке.`};
-  else if(movers.length&&movers[0].g>=3){const m=movers[0];lead={k:'Рывок',h:`${m.r.name} прыгает с ${was[m.r.name]}-го на ${now[m.r.name]}-е место`,t:'Форум гадает, что они нашли: новую карту, быстрый серв или удачный шум.'}}
-  else lead={k:'Борд',h:`Подиум без перемен: ${top.name} держит ${f(top.best)}`,t:`Второе место у ${rows[1].name}, третье у ${rows[2].name}.`};
+  else if(now[me]===1&&was[me]!==1)lead={k:msg('lkSens'),h:msg('lhSens',N(me)),t:msg('ltSens',f(G.best))};
+  else if(now[me]<=30&&was[me]-now[me]>=4)lead={k:msg('lkRise'),h:msg('lhRise',N(me),was[me],now[me]),t:msg('ltRise',f(G.best))};
+  else if(top.name!==topY.name)lead={k:msg('lkLead'),h:msg('lhLead',N(top.name),N(topY.name)),t:msg('ltLead',f(top.best))};
+  else if(movers.length&&movers[0].g>=3){const m=movers[0];lead={k:msg('lkJump'),h:msg('lhJump',N(m.r.name),was[m.r.name],now[m.r.name]),t:msg('ltJump')}}
+  else lead={k:msg('lkBoard'),h:msg('lhBoard',N(top.name),f(top.best)),t:msg('ltBoard',N(rows[1].name),N(rows[2].name))};
   const gold=rows[9];
-  const news=[`Золотая линия (10-е место): ${f(gold.best)}.`,`Подиум: ${rows.slice(0,3).map(r=>r.name+' '+f(r.best)).join(', ')}.`,G.best?`${me}: ${now[me]}-е место, ${f(G.best)}.`:`${me} пока без сабмитов.`];
-  const forum=[inBreak(d+6)?'Тред «Submission Scoring Error» набрал сто ответов.':pick(FORUM_FLUFF)];
-  const wire=rows.slice(0,40).filter(r=>!r.me&&r.best>r.y+0.005).slice(0,4).map(r=>`${r.name}: новый лучший ${f(r.best)}`);
-  if(!wire.length)wire.push('Тихая неделя: в топ-40 ни одного нового рекорда.');
+  const news=[msg('nGold',f(gold.best)),msg('nPodium',pod),G.best?msg('nMe',N(me),now[me],f(G.best)):msg('nNone',N(me))];
+  const forum=[inBreak(d+6)?msg('fBreak'):msg(pick(FORUM_FLUFF))];
+  const wire=rows.slice(0,40).filter(r=>!r.me&&r.best>r.y+0.005).slice(0,4).map(r=>msg('wBest',N(r.name),f(r.best)));
+  if(!wire.length)wire.push(msg('wQuiet'));
   const cr=pick(rows.slice(0,15).filter(r=>!r.me));
   G.papers.push({n:G.papers.length+1,w,lead,news,forum,wire,card:{name:cr.name,rank:now[cr.name],best:f(cr.best)},art:(w*7919+G.papers.length*104729)>>>0});
   if(G.papers.length>12)G.papers.shift();
@@ -622,13 +625,242 @@ function finalReveal(){
 }
 /*END-ENGINE*/
 const $=s=>document.querySelector(s);
+const LANG_KEY='arc3-last-bet-lang';
+let LANG=initLang();
+function initLang(){let s=null;try{s=localStorage.getItem(LANG_KEY)}catch(e){}if(s==='ru'||s==='en')return s;
+  let q='';try{q=String(new URLSearchParams(location.search).get('lang')||'').toLowerCase()}catch(e){}if(q==='ru'||q==='en')return q;
+  let n='';try{n=String(navigator.language||'').toLowerCase()}catch(e){}return n.startsWith('ru')?'ru':'en'}
+function setLang(l){LANG=l==='en'?'en':'ru';try{localStorage.setItem(LANG_KEY,LANG)}catch(e){}applyLang()}
+function applyLang(){document.title=tr('title');document.documentElement.lang=LANG;const c=$('.crt');if(c)c.setAttribute('aria-label',tr('monitor'))}
+const pe=(n,a,b)=>n===1?a:b;
+const MON_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const KRU={};KDEF.forEach(d=>KRU[d[0]]=[d[1],d[6].al||[]]);
+const KEN={
+ recolor:['Colors as words',['Name the colors in text']],cblind:['Colorblind palette',['High-contrast palette']],gridlines:['Grid lines',['Lines between cells']],
+ coords:['Coordinates on the edges',['x/y ruler']],moreimg:['An image every move',['More images']],lessimg:['Image only on change',['Fewer images']],
+ px8:['8px images',['8-pixel cells']],px16:['16px images',['Big cells']],diffimg:['Diff image',['Diff after each move']],godiff:['Diff on Game Over',[]],
+ textgrid:['Grid as digits',['Text instead of the image']],textimg:['Digits plus image',['Text plus image']],hilite:['Highlight changes',['Box around changes']],
+ objects:['Object list',['Object segmentation']],rle:['RLE grid compression',[]],frames:['Animation frames',['Last three frames']],zoom:['Zoom on the object',[]],
+ reconsider:['“Let me reconsider”',['“Double-check yourself”']],shortsys:['Short prompt',['Squeezed system prompt']],actinfo:['Button descriptions',['Detailed actions']],
+ interact:['INTERACT and CLICK',['Human names for actions']],space:['SPACE and MOUSE',[]],fewshot:['Example move in the prompt',['Sample answer']],
+ goalturn:['Goal in every turn',['Goal reminder']],hyplog:['Hypothesis log',['Hypothesis list']],norepeat:['Never repeat an action',['Repeat ban']],
+ thinkmore:['Think longer',['Double thinking budget']],thinkless:['Think shorter',[]],t06:['Temperature 0.6',[]],t10:['Temperature 1.0',[]],
+ plain:['Tool result without JSON',['Plain-text tool result']],resetwhy:['RESET with a reason',['RESET with an explanation']],memlvl:['Memory across levels',['Knowledge transfer']],
+ review:['Post-level review',['Level recap']],summary:['Summary instead of history',['Compressed history']],trim:['Context trimming',[]],
+ ctx110:['Context 110K',['Long context']],ctx150:['Context 150K',[]],undo:['Undo hint',[]],clickall:['Brute-force clicks',['Click everything']],
+ actcount:['Action counter',[]],budgetwarn:['“Actions are squared”',['Action budget']],explorer:['Model-free scout',['Random start']],
+ loopdet:['Loop detector',['Catch the loops']],mask:['Action mask',[]],stuckrand:['Random move when stuck',[]],replayseq:['Replay a winning solution',['Play the solution again']],
+ reset50:['Reset after 50 moves',[]],rulecode:['Rules as code',['Rule simulator']],sandbox:['Python sandbox',[]],keepthink:['Thoughts in the history',[]],
+ cutthink:['History without thoughts',['Strip the reasoning']],goalfirst:['“Find the goal, don’t wander”',[]],marioexit:['Looks like Mario: exit',[]],
+ mariohack:['“Mario” hack',[]],overfit:['Fit the public leaderboard',[]],photo:['Level photographer',[]],helpers:['Helpers',[]],forum:['Forum of copies',[]],
+ duel:['Refuter agent',[]],forks:['Research forks',[]],moreimg8:['x8 images, always',[]]
+};
+const DEF_EN={late:'Image arrives one move late',xy:'Clicks have x and y swapped',resethist:'RESET never makes it into the history',trimgoal:'Trimming eats the level goal',
+ lostmsg:'Tool result loses a message',gameover:'Model can’t see Game Over',dupsys:'Prompt is sent twice',imgcache:'Image cache misses',cutreason:'Thoughts get cut off',
+ seedmiss:'Compile cache doesn’t load',nohist:'No move history',noimg:'Model can’t see the image',noreset:'No RESET button'};
+const TECH_EN={cache:'Compile cache',graphs:'CUDA graphs',kv8:'KV int8',prefix:'Prefix cache',rotation:'Session rotation',lanes45:'Lanes 28 → 45',mtp:'MTP speculation',
+ hostkv:'KV in RAM',lanes110:'Lanes 45 → 110',drafter:'Our own drafter',kv4:'KV int4',w4a8:'W4A8 weights',cut400:'Expert cut 512 → 400',hot512:'Hot swap back to 512',
+ kd:'Router distillation',reap:'REAP experts'};
+const TFAIL_EN={kd:'drift no lower than with a plain cut',reap:'drift worse than a plain cut'};
+const PROBE_EN={click:'the game uses clicks',anim:'the game is animated',mario:'it looks like Mario',long:'the level runs past 200 moves',zero:'we’re at zero after 100 moves'};
+const ABOUT_EN={gemma:'dense 27B, sees images',qwen32:'a bit smarter, noticeably slower',a3b:'fast, but simpler',oss:'the fastest and the simplest',q38:'MoE with 512 experts'};
+const NAME_EN={'Фазан':'Fazan','Колмогоров и сыновья':'Kolmogorov & Sons','Ленивые эксперты':'Lazy Experts','Квантованный енот':'Quantized Raccoon','ночной деплой':'midnight deploy',
+ 'Пятничный пуш':'Friday Push','Плато':'Plateau','Гусь-исследователь':'Explorer Goose','Абстракция и Ко':'Abstraction & Co','Кэш промахнулся':'Cache Missed','ГПУ-часы':'GPU Hours',
+ 'Ночной дозор':'Night Watch','Плотные и злые':'Dense & Furious','torch.compile ждёт':'torch.compile pending','Сеточники':'Gridheads','Новичок':'Rookie'};
+const I18N={
+ru:{
+ title:'Последняя ставка',monitor:'Монитор Claude',brand:'ПОСЛЕДНЯЯ<br>СТАВКА',week:(a,b)=>`НЕДЕЛЯ ${a} / ${b}`,rankOf:(n,b)=>`из ${n} · лучший ${b}`,noSubs:'сабмитов пока нет',
+ paperBtn:'Газета',helpAria:'Как играть',restart:'Заново',langBtn:'EN',langAria:'Переключить на английский',
+ ctx:'контекст',ctxBad:'путается и может врать',ctxWarn:'начинает путаться',ctxOk:'голова ясная',wdn:['вс','пн','вт','ср','чт','пт','сб'],
+ cRobot:'робот',cWith:n=>`с «${n}»`,cWithout:'без',cProbe:'проба',chartAria:'Сабмиты недели',mAgent:'среднее',mWith:'с картой',mWithout:'без',errTip:'ошибка скоринга',
+ toWork:'В мастерскую →',kPlace:'МЕСТО',kBest:'ЛУЧШИЙ СЧЁТ',digest:'ARC-Дайджест',readMore:'Читать →',nextBtn:'Дальше →',
+ tipN:(n,m,s)=>`замеров ${n}: ${m} ± ${s}`,tipIdea:p=>`идея, по ощущениям ${p}`,tipNone:'ещё не мерили',tipHeavy:'тяжёлая: замедляет серв',footN:n=>'замеров '+n,footIdea:'идея',footNone:'не мерили',
+ emptySlot:'пустой слот',tasksDone:'Дела на эту неделю сделаны. Можно переставить карты и идти к сабмитам.',robotLbl:'РОБОТ-АГЕНТ',speed:'скорость',fazans:x=>`${x} фазана`,
+ handLbl:'РУКА',handHint:'нажми готовую карту, чтобы поставить в робота; карту в роботе, чтобы вынуть',tasksLbl:'ДЕЛА НА НЕДЕЛЮ',toSubs:'К сабмитам →',
+ planLast:'Последняя неделя сезона. Что отправляем?',planBreak:'Пятница. Kaggle на этой неделе ломается, часть сабмитов пропадёт. Что отправляем?',planFri:'Пятница. Что сабмитим на этой неделе?',back:'← назад в мастерскую',
+ pAgentLast:'Последняя ставка: текущий робот',pAgent:'Всю неделю текущий робот',pAgentW:'Семь сабмитов, просто счёт на борд.',pTest:n=>`Сабмит-тест «${n}»`,pTestW:'3 дня с картой, 4 без. Честно, на скрытых играх, но шумно.',
+ pProbe:q=>`Чит-проба: if ${q} → fail`,pProbeW:b=>`Узнаем, сколько таких игр и как там работают карты. Риск бана ${b}%.`,
+ finalLbl:'ДВА ФИНАЛЬНЫХ САБМИТА',finalDef:'по умолчанию два лучших',pickRow:(w,d)=>`неделя ${w} · ${d}`,revealBtn:'Вскрыть приватный борд →',
+ o1:'Ты выиграл ARC Prize.',o5:'Призовое место. Открывай код под CC-BY 4.0.',o10:'Топ-10. Золото.',o25:'Серебряная зона.',o50:'Середина борда.',oTail:'Хвост борда.',overSay:t=>`Приватный борд вскрыт. ${t}`,
+ dup:' (дубль)',dead:' (не доходила)',kPriv:'ПРИВАТ',kScore:'СЧЁТ',kPub:'БЫЛ НА ПАБЛИКЕ',truthLbl:'ПРАВДА О ТВОЁМ РОБОТЕ',truthHint:'полоса — настоящий эффект, жёлтая черта — твой замер',emptyRobot:'Робот пустой.',newGame:'Новая игра',
+ banSay:'Нас забанили.',banT:'БАН',banX:(p,w)=>`Kaggle заметил, что наши сабмиты нарочно валят игры, и заблокировал команду за пробинг лидерборда. Бан прилетел на ${p}-й пробе, на неделе ${w}.`,
+ issue:n=>`Выпуск №${n}`,pDate:d=>`понедельник, ${d} 2026`,weekly:'Еженедельник',pSub:'О борде ARC-AGI-3 · места предварительные до вскрытия приватного борда',hMain:'Главное',hWire:'Лента',hForum:'С форума',
+ pFoot:'Внутриигровая газета, все команды вымышлены. Отсылка к The ARC Daily Digest Марка Барни: ',pPrev:'← Прошлый',close:'Закрыть',pNext:'Следующий →',
+ sTitle:'ПОСЛЕДНЯЯ СТАВКА',sIntro:'1 июля 2026. Milestone 1 позади, лидеры на 6–7 очках. Ты, Claude и 99 команд. 18 недель до финала, а финал решит приватный борд на других 55 играх.',nick:'ТВОЙ НИК',
+ starts:[['copy','Скопировать победителя M1','Старт около 5 очков. В чужом коде спрятаны дефекты.'],['merge','Слить публичные ноутбуки','Шесть карт сразу, дефектов больше, кто-то из карт вредит.'],['scratch','Писать с нуля','Старт ниже. Три дыры, которые надо закрыть самому.'],['post','Пост «ищу команду»','База победителя M1, и сразу придут предложения.']],
+ hTitle:'КАК ИГРАТЬ',rules:['Каждая неделя — три экрана: понедельник (что вышло), мастерская (два дела из трёх, что предложил Claude), пятница (что сабмитим).','Карты в роботе меняют счёт на скрытый процент. Полоса на карте — что ты о ней знаешь: широкая, пока мало замеров, зелёная или красная, когда ясно.','Тесты шумят. Утки дешёвые, но немного врут. Сабмит-тест честный, но шумный. Чит-проба точная, но может закончиться баном.','Когда у Claude большой контекст, он путается и может предложить ерунду или соврать про результат.','Тяжёлые карты (●●●) замедляют серв. После Milestone 2 откроется ускорение серва.'],gotIt:'Понятно',
+ hi:n=>`Привет, ${n}! Milestone 1 позади, лидеры борда на 6–7 очках. Наш робот собран из чужого ноутбука. Каждую неделю я предложу три дела, а ты выберешь два.`,
+ hiScratch:n=>`Привет, ${n}! Пишем с нуля: в роботе пока три дыры. Закроем их, потом начнём набирать карты.`,
+ lGoal:'Цель: финал 2 ноября, 18 недель.',lCards:'Карты в роботе меняют счёт на скрытый процент. Узнать его можно только тестами, а они шумят.',lFriday:'Вечером в пятницу решаем, что сабмитить всю неделю.',lPost:'Пост «ищу команду» висит на форуме. Ответы придут на днях.',
+ variant2:', вариант 2',
+ cLieUp:m=>`точно помогает, ${m}. Оставляем!`,cLieDn:m=>`точно вредит, ${m}. Выкидываем!`,cUp:m=>`помогает, ${m}.`,cDn:m=>`вредит, ${m}.`,cNoise:(m,s)=>`пока шум, ${m} ± ${s}.`,
+ oWriteT:n=>`Написать «${n}»`,oWriteW:p=>`Новая карта в робота. По ощущениям ${p}.`,oDuckT:n=>`Тест на утках: «${n}»`,oPairT:n=>`Точный тест: «${n}»`,oDuckW:'Дёшево, шум ±5%, и утки немного врут.',oPairW:'Парные форки, шум ±1.5%.',
+ oAbT:n=>`A/B-репетиция: «${n}»`,oAbW:'Точнее уток, шум ±3%. Займёт оба дела.',oIdeasT:'Придумать новые идеи',oIdeasW:'Две новые карты в руку.',oReadT:'Прочитать запросы целиком',oReadW:'Найду и починю, что сломано.',
+ oHoleT:d=>`Закрыть дыру: ${d}`,oHoleW:'Без этого агент почти слепой.',oCompactT:'Сжать мой контекст',oCompactW:c=>`Контекст ${c}%, я начинаю путаться.`,
+ oTechT:n=>`Ускорить серв: ${n}`,oTechW:(s,r)=>`${s!==1?'Серв ×'+s+'. ':''}${r==='lo'?'Риск низкий.':r==='mid'?'Риск средний.':'Риск высокий.'}`,
+ oQ38T:'Переехать на Qwen3.8',oQ38W:'Новая модель заметно сильнее. Часть карт может сломаться.',oModelT:n=>`Сменить модель на ${n}`,oModelW:a=>`${a[0].toUpperCase()+a.slice(1)}. Часть карт может сломаться.`,
+ oRtxT:'Перенести ноутбук на RTX 6000',oRtxW:'Серв ×1.25.',oBatchedT:'Поднять max_num_batched_tokens',oBatchedW:'Мы этого никогда не пробовали! +10% скорости.',oAliasT:'Новая идея, которой у нас не было',oAliasW:'Мы такого никогда не пробовали, уверен!',
+ writeRobot:n=>`Готово, «${n}» стоит в роботе. Тесты зелёные.`,writeHand:n=>`Готово, «${n}» лежит в руке: в роботе нет места. Вынь что-нибудь, если хочешь её поставить.`,
+ testSay:(a,n,c)=>`${a==='duck'?'Утки':a==='ab'?'Репетиция':'Точный тест'} по «${n}»: ${c}`,
+ ideasGot:a=>`Две идеи в руке: «${a.join('» и «')}».`,ideasNone:'Идеи кончились.',aliasGot:n=>`Новая идея: «${n}». Мы такого никогда не пробовали!`,aliasNone:'Ничего нового не придумал.',
+ readCard:n=>`«${n}» не доходила до модели`,readFound:a=>`Нашёл и починил: ${a.join('; ')}.`,readNone:'Прочитал три запроса целиком. Всё на месте.',
+ holeDone:d=>`Закрыл: ${d}. Теперь агент это видит.`,compactDone:'Контекст сжат. Голова ясная.',
+ techOk:(n,s)=>`«${n}» работает${s!==1?`: серв ×${s}`:''}.`,techFail:(n,f)=>`«${n}» не взлетела: ${f}. Можно попробовать ещё.`,
+ fail0:'vLLM упал: переполнился пул KV',fail1:'в датасете не оказалось патчей',fail2:'900 секунд без единой строки в логе',fail3:'ядро умеет только BF16',fail4:'качество поплыло, откатили',
+ moved:n=>`Переехали на ${n}. Старые замеры сделаны на другой модели.`,rtxDone:'Ноутбук теперь получает RTX 6000. Серв ×1.25.',batchedDone:'Подняли max_num_batched_tokens. Выигрыш ноль, серв тот же.',ctxOver:'Контекст переполнился, я его сжал.',
+ lTest:(n,a,b,d,s)=>`Сабмит-тест «${n}»: с картой ${a}, без ${b}, разница ${d} ± ${s}.`,lProbe:(q,n)=>`Проба «${q}»: таких игр в публичных 55 около ${n}. Бан не прилетел. Связанные карты получили точный замер.`,
+ lErr:n=>`Kaggle потерял ${n} сабмитов с ошибкой скоринга.`,lM2w:'Вышли райтапы Milestone 2: в руке мульти-агентные идеи. Им нужен быстрый серв.',
+ drProbe:'Пронесло. Но каждая следующая проба опаснее.',drBig:d=>`Отличная неделя: мы поднялись на ${d} ${plural(d,'место','места','мест')}!`,drUp:d=>`Чуть подросли: плюс ${d} ${plural(d,'место','места','мест')}.`,
+ drDn:d=>`Нас обошли: минус ${d} ${plural(d,'место','места','мест')}. Другие тоже не спят.`,drFlat:'Стоим на месте. Шум борда съел нашу неделю.',
+ lastWeek:'Это последняя неделя сезона.',finalSay:'Всё, сабмиты закрыты. Выбери два финальных, и вскроем приватный борд.',
+ lPraise:n=>`Форум: кто-то хвалит «${n}». Карта в руке.`,lJump:n=>`${n} резко поднялись на борде. Что они нашли?`,lToken:'Протух токен Kaggle, полдня на починку: на этой неделе на одно дело меньше.',
+ lMate:(m,n)=>`${m} прогнали «${n}» на своём стенде. Замер в карте.`,lMerged:(n,k)=>`${n} теперь в команде: плюс одно дело в неделю${k?`, и они принесли идею «${k}»`:''}.`,
+ fazanSwitched:'Пересели на базу Фазана: его серв и Qwen3.8. Часть наших карт могла не доехать, стоит прочитать запросы.',speedOpen:'Путь скорости открыт. Теперь я буду предлагать ускорения серва.',
+ slotFull:'В роботе нет места. Сначала вынь карту, нажав на неё.',hint:'Это пока идея. Чтобы карта появилась, её надо написать: такое дело я предложу в «Делах на неделю».',
+ wDizzy:'Голова гудит. Предлагаю дела, но я могу путаться.',wPick:(w,l)=>`Неделя ${w}. Выбери ${l===1?'одно дело':l+' '+plural(l,'дело','дела','дел')} из трёх.`,
+ ppK1:'Первый номер',ppH1:n=>`Сезон глазами борда: наверху ${n}`,ppT1:(n,b)=>`Первое место у ${n} с ${b}. Мы будем писать о борде каждый понедельник. Места предварительные до вскрытия приватного борда.`,
+ ppK2:'Milestone 2',ppH2:n=>`${n} забирает первый приз Milestone 2`,ppT2:p=>`Подиум на 30 сентября: ${p.map(x=>x.join(' ')).join(', ')}.`,
+ ppK3:'Форум',ppH3:'Фазан открывает карты: публичный ноутбук с быстрым сервом',ppT3:'Хвост борда получил базу, на которой можно расти до конца сезона.',
+ ppK4:'Составы',ppH4:'Последняя неделя слияний: команды ищут друг друга',ppT4:'В воскресенье составы замораживаются.',
+ ppK5:'Kaggle',ppH5:'Kaggle признаёт проблемы с ранами. Кто вернёт командам потерянные дни?',ppT5:'Часть сабмитов падает с ошибкой скоринга. Продления не будет.',
+ lkSens:'Сенсация',lhSens:n=>`${n} возглавляет борд`,ltSens:b=>`Лучший сабмит ${b}.`,lkRise:'Подъём',lhRise:(n,a,b)=>`${n} поднимается с ${a}-го на ${b}-е место`,ltRise:b=>`Лучший сабмит команды ${b}.`,
+ lkLead:'Смена лидера',lhLead:(a,b)=>`${a} обходит ${b} и выходит на первое место`,ltLead:b=>`${b} на первой строчке.`,
+ lkJump:'Рывок',lhJump:(n,a,b)=>`${n} прыгает с ${a}-го на ${b}-е место`,ltJump:'Форум гадает, что они нашли: новую карту, быстрый серв или удачный шум.',
+ lkBoard:'Борд',lhBoard:(n,b)=>`Подиум без перемен: ${n} держит ${b}`,ltBoard:(a,b)=>`Второе место у ${a}, третье у ${b}.`,
+ nGold:b=>`Золотая линия (10-е место): ${b}.`,nPodium:p=>`Подиум: ${p.map(x=>x.join(' ')).join(', ')}.`,nMe:(n,r,b)=>`${n}: ${r}-е место, ${b}.`,nNone:n=>`${n} пока без сабмитов.`,
+ fBreak:'Тред «Submission Scoring Error» набрал сто ответов.',ff0:'Фазан пишет, что у них картинки x10 и 110 линий.',ff1:'Хост подтвердил: публичные 25 игр проще скрытых.',
+ ff2:'Кто-то выложил разбор шума: одна и та же пуля даёт ±1.3.',ff3:'Спорят, считать ли RESET действием. Считать.',ff4:'Новичок спрашивает, где взять движок скрытых игр. Нигде.',
+ wBest:(n,b)=>`${n}: новый лучший ${b}`,wQuiet:'Тихая неделя: в топ-40 ни одного нового рекорда.',
+ ev:{
+  mario:{t:'Игра, похожая на Марио',x:'В публичных 25 нашлась игра, похожая на Марио. Половина форума пишет под неё хаки, другая половина советует просто выходить из таких игр.',c:['Взять обе идеи в руку']},
+  qwen:{t:'Вышла Qwen3.8 Next Flash',x:'Новая модель на 512 экспертов. На форуме пишут о скачке на десятки процентов. При переезде часть карт может сломаться.',c:['Переезжаем','Пока нет']},
+  rtx:{t:'RTX 6000 в пуле',x:'Kaggle добавил RTX 6000 для этого соревнования. Ноутбук без привязки к соревнованию по-прежнему получает T4.',c:['Переносим ноутбук','Не сейчас']},
+  paper:{t:'У соревнования появилась газета',x:'Кто-то из участников выпускает газету о борде: рывки, смены лидеров, поломки Kaggle. Новый номер каждый понедельник.',c:['Открыть','Потом']},
+  m2:{t:'Milestone 2 закрыт',x:r=>`Мы <b>#${r}</b>. ${r<=3?'Призовое место! Осталось открыть ноутбук под CC-BY 4.0.':'Призы ушли топ-3.'} Разбор лидеров: агенты у всех похожие, а серв у топа вдвое быстрее.`,c:['Открыть путь скорости']},
+  fazan:{t:'Фазан выложил ноутбук',x:'Публичный ноутбук Фазана: свой быстрый серв, Qwen3.8, картинки x10. Можно пересесть на его базу. В чужом коде будут свои дефекты.',c:['Остаться на своём','Пересесть на базу Фазана']},
+  merge:{t:'Последняя неделя слияний',x:'В воскресенье составы команд замораживаются. Кто не нашёл команду сейчас, идёт к финалу как есть.',c:['Понятно']},
+  kbreak:{t:'Kaggle ломается',x:'Kaggle признал проблемы со скорингом. На этой неделе часть сабмитов упадёт с ошибкой. Продления дедлайна не будет.',c:['Понятно']},
+  offer:{t:'Предложение объединиться',x:o=>o?`<b>${esc(o.name)}</b> (#${o.rank}, лучший ${o.best}) зовут в одну команду. Тиммейт даёт ещё одно дело в неделю, а команде засчитывается лучший сабмит из двух.`:'Предложение отозвано.',c:['Объединиться','Отказаться']}
+ }
+},
+en:{
+ title:'The Last Bet',monitor:'Claude’s monitor',brand:'THE LAST<br>BET',week:(a,b)=>`WEEK ${a} / ${b}`,rankOf:(n,b)=>`of ${n} · best ${b}`,noSubs:'no submissions yet',
+ paperBtn:'Paper',helpAria:'How to play',restart:'Restart',langBtn:'RU',langAria:'Switch to Russian',
+ ctx:'context',ctxBad:'confused and may lie',ctxWarn:'getting confused',ctxOk:'clear head',wdn:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+ cRobot:'robot',cWith:n=>`with “${n}”`,cWithout:'without',cProbe:'probe',chartAria:'This week’s submissions',mAgent:'mean',mWith:'with card',mWithout:'without',errTip:'scoring error',
+ toWork:'To the workshop →',kPlace:'RANK',kBest:'BEST SCORE',digest:'ARC Digest',readMore:'Read →',nextBtn:'Next →',
+ tipN:(n,m,s)=>`${n} ${pe(n,'measurement','measurements')}: ${m} ± ${s}`,tipIdea:p=>`idea, gut feeling ${p}`,tipNone:'not measured yet',tipHeavy:'heavy: slows the serve',
+ footN:n=>`${n} ${pe(n,'test','tests')}`,footIdea:'idea',footNone:'untested',
+ emptySlot:'empty slot',tasksDone:'This week’s tasks are done. Rearrange the cards, then head to submissions.',robotLbl:'ROBOT AGENT',speed:'speed',fazans:x=>`${x} fazans`,
+ handLbl:'HAND',handHint:'click a ready card to put it in the robot; click a card in the robot to take it out',tasksLbl:'THIS WEEK’S TASKS',toSubs:'To submissions →',
+ planLast:'Last week of the season. What do we send?',planBreak:'Friday. Kaggle is breaking this week, and some submissions will vanish. What do we send?',planFri:'Friday. What do we submit this week?',back:'← back to the workshop',
+ pAgentLast:'The last bet: the current robot',pAgent:'The current robot, all week',pAgentW:'Seven submissions, just a score for the leaderboard.',pTest:n=>`Submission test: “${n}”`,pTestW:'3 days with the card, 4 without. Honest, on hidden games, but noisy.',
+ pProbe:q=>`Cheat probe: if ${q} → fail`,pProbeW:b=>`We learn how many such games there are and how cards do on them. Ban risk ${b}%.`,
+ finalLbl:'TWO FINAL SUBMISSIONS',finalDef:'the two best by default',pickRow:(w,d)=>`week ${w} · ${d}`,revealBtn:'Reveal the private leaderboard →',
+ o1:'You won the ARC Prize.',o5:'A prize spot. Open-source your code under CC-BY 4.0.',o10:'Top 10. Gold.',o25:'Silver zone.',o50:'Middle of the pack.',oTail:'The tail of the leaderboard.',overSay:t=>`The private leaderboard is out. ${t}`,
+ dup:' (duplicate)',dead:' (never reached the model)',kPriv:'PRIVATE',kScore:'SCORE',kPub:'PUBLIC RANK',truthLbl:'THE TRUTH ABOUT YOUR ROBOT',truthHint:'bar: the real effect; yellow tick: your measurement',emptyRobot:'The robot is empty.',newGame:'New game',
+ banSay:'We got banned.',banT:'BANNED',banX:(p,w)=>`Kaggle noticed our submissions were failing games on purpose and banned the team for probing the leaderboard. The ban landed on probe #${p}, in week ${w}.`,
+ issue:n=>`Issue No. ${n}`,pDate:d=>`Monday, ${d}, 2026`,weekly:'Weekly',pSub:'On the ARC-AGI-3 leaderboard · ranks are provisional until the private leaderboard is revealed',hMain:'Top stories',hWire:'Wire',hForum:'From the forum',
+ pFoot:'An in-game newspaper; all teams are fictional. A nod to Mark Barney’s The ARC Daily Digest: ',pPrev:'← Previous',close:'Close',pNext:'Next →',
+ sTitle:'THE LAST BET',sIntro:'July 1, 2026. Milestone 1 is behind us, and the leaders sit at 6–7 points. You, Claude and 99 teams. 18 weeks to the final, and the final is decided by the private leaderboard on 55 other games.',nick:'YOUR NICKNAME',
+ starts:[['copy','Copy the M1 winner','Start around 5 points. Someone else’s code hides defects.'],['merge','Merge public notebooks','Six cards at once, more defects, and some of the cards hurt.'],['scratch','Write from scratch','A lower start. Three holes you have to close yourself.'],['post','Post “looking for a team”','The M1 winner’s base, and merger offers start coming right away.']],
+ hTitle:'HOW TO PLAY',rules:['Each week is three screens: Monday (what happened), the workshop (two of the three tasks Claude proposes), Friday (what we submit).','Cards in the robot change the score by a hidden percentage. The bar on a card is what you know about it: wide while measurements are few, green or red once it’s clear.','Tests are noisy. Ducks are cheap but lie a little. A submission test is honest but noisy. A cheat probe is precise but can end in a ban.','When Claude’s context fills up, it gets confused and may suggest nonsense or lie about a result.','Heavy cards (●●●) slow the serve. After Milestone 2, serve speed-ups unlock.'],gotIt:'Got it',
+ hi:n=>`Hi, ${n}! Milestone 1 is behind us, and the leaders sit at 6–7 points. Our robot is built from someone else’s notebook. Every week I’ll propose three tasks, and you pick two.`,
+ hiScratch:n=>`Hi, ${n}! We’re writing it from scratch: the robot has three holes for now. Let’s close them, then start collecting cards.`,
+ lGoal:'Goal: the final on November 2, 18 weeks out.',lCards:'Cards in the robot change the score by a hidden percentage. Only tests can reveal it, and tests are noisy.',lFriday:'On Friday evening we decide what to submit for the whole week.',lPost:'The “looking for a team” post is up on the forum. Replies will come in a few days.',
+ variant2:', take 2',
+ cLieUp:m=>`definitely helps, ${m}. Keeping it!`,cLieDn:m=>`definitely hurts, ${m}. Throwing it out!`,cUp:m=>`helps, ${m}.`,cDn:m=>`hurts, ${m}.`,cNoise:(m,s)=>`just noise so far, ${m} ± ${s}.`,
+ oWriteT:n=>`Write “${n}”`,oWriteW:p=>`A new card for the robot. Gut feeling: ${p}.`,oDuckT:n=>`Duck test: “${n}”`,oPairT:n=>`Precise test: “${n}”`,oDuckW:'Cheap, noise ±5%, and the ducks lie a little.',oPairW:'Paired forks, noise ±1.5%.',
+ oAbT:n=>`A/B rehearsal: “${n}”`,oAbW:'More precise than ducks, noise ±3%. Takes both tasks.',oIdeasT:'Come up with new ideas',oIdeasW:'Two new cards for your hand.',oReadT:'Read the requests in full',oReadW:'I’ll find whatever is broken and fix it.',
+ oHoleT:d=>`Close a hole: ${d}`,oHoleW:'Without this the agent is nearly blind.',oCompactT:'Compact my context',oCompactW:c=>`Context at ${c}%, I’m starting to get confused.`,
+ oTechT:n=>`Speed up the serve: ${n}`,oTechW:(s,r)=>`${s!==1?'Serve ×'+s+'. ':''}${r==='lo'?'Low risk.':r==='mid'?'Medium risk.':'High risk.'}`,
+ oQ38T:'Move to Qwen3.8',oQ38W:'The new model is clearly stronger. Some cards may break.',oModelT:n=>`Switch the model to ${n}`,oModelW:a=>`${a[0].toUpperCase()+a.slice(1)}. Some cards may break.`,
+ oRtxT:'Move the notebook to the RTX 6000',oRtxW:'Serve ×1.25.',oBatchedT:'Raise max_num_batched_tokens',oBatchedW:'We’ve never tried this! +10% speed.',oAliasT:'A new idea we’ve never had',oAliasW:'We’ve never tried anything like it, I’m sure!',
+ writeRobot:n=>`Done, “${n}” is in the robot. Tests are green.`,writeHand:n=>`Done, “${n}” is in your hand: the robot has no room. Take something out if you want to slot it.`,
+ testSay:(a,n,c)=>`${a==='duck'?'Ducks':a==='ab'?'Rehearsal':'Precise test'} on “${n}”: ${c}`,
+ ideasGot:a=>a.length===1?`A new idea in hand: “${a[0]}”.`:`Two ideas in hand: “${a.join('” and “')}”.`,ideasNone:'We’re out of ideas.',aliasGot:n=>`New idea: “${n}”. We’ve never tried anything like it!`,aliasNone:'Couldn’t come up with anything new.',
+ readCard:n=>`“${n}” never reached the model`,readFound:a=>`Found and fixed: ${a.join('; ')}.`,readNone:'Read three requests in full. Everything is in place.',
+ holeDone:d=>`Closed: ${d}. The agent can see it now.`,compactDone:'Context compacted. Clear head.',
+ techOk:(n,s)=>`“${n}” works${s!==1?`: serve ×${s}`:''}.`,techFail:(n,f)=>`“${n}” didn’t fly: ${f}. We can try again.`,
+ fail0:'vLLM crashed: the KV pool overflowed',fail1:'the patches never made it into the dataset',fail2:'900 seconds without a single log line',fail3:'the kernel only does BF16',fail4:'quality drifted, so we rolled back',
+ moved:n=>`Moved to ${n}. The old measurements were made on a different model.`,rtxDone:'The notebook now gets an RTX 6000. Serve ×1.25.',batchedDone:'Raised max_num_batched_tokens. Zero gain, same serve.',ctxOver:'My context overflowed, so I compacted it.',
+ lTest:(n,a,b,d,s)=>`Submission test “${n}”: ${a} with the card, ${b} without, difference ${d} ± ${s}.`,lProbe:(q,n)=>`Probe “${q}”: about ${n} such games among the public 55. No ban. The related cards got a precise measurement.`,
+ lErr:n=>`Kaggle lost ${n} ${pe(n,'submission','submissions')} to a scoring error.`,lM2w:'Milestone 2 write-ups are out: multi-agent ideas are in your hand. They need a fast serve.',
+ drProbe:'Got away with it. But every probe from here is riskier.',drBig:d=>`Great week: we climbed ${d} ${pe(d,'place','places')}!`,drUp:d=>`A small climb: up ${d} ${pe(d,'place','places')}.`,
+ drDn:d=>`We got passed: down ${d} ${pe(d,'place','places')}. Nobody else is sleeping either.`,drFlat:'Standing still. Leaderboard noise ate our week.',
+ lastWeek:'This is the last week of the season.',finalSay:'That’s it, submissions are closed. Pick two finals, and we’ll reveal the private leaderboard.',
+ lPraise:n=>`Forum: someone is praising “${n}”. The card is in your hand.`,lJump:n=>`${n} shot up the leaderboard. What did they find?`,lToken:'The Kaggle token expired, half a day to fix it: one task fewer this week.',
+ lMate:(m,n)=>`${m} ran “${n}” on their own rig. The measurement is on the card.`,lMerged:(n,k)=>`${n} joined the team: one more task a week${k?`, and they brought the idea “${k}”`:''}.`,
+ fazanSwitched:'We moved onto Fazan’s base: his serve and Qwen3.8. Some of our cards may not have survived the trip; worth reading the requests.',speedOpen:'The speed path is open. From now on I’ll propose serve speed-ups.',
+ slotFull:'The robot is full. Take a card out first by clicking it.',hint:'This is just an idea for now. To get the card, it has to be written: I’ll offer that under “This week’s tasks”.',
+ wDizzy:'My head is buzzing. I’ll propose tasks, but I may get confused.',wPick:(w,l)=>`Week ${w}. Pick ${l===1?'one task':l+' tasks'} out of three.`,
+ ppK1:'First issue',ppH1:n=>`The season through the leaderboard: ${n} on top`,ppT1:(n,b)=>`First place: ${n} with ${b}. We’ll cover the leaderboard every Monday. Ranks are provisional until the private leaderboard is revealed.`,
+ ppK2:'Milestone 2',ppH2:n=>`${n} takes the Milestone 2 first prize`,ppT2:p=>`The podium on September 30: ${p.map(x=>x.join(' ')).join(', ')}.`,
+ ppK3:'Forum',ppH3:'Fazan shows his cards: a public notebook with a fast serve',ppT3:'The tail of the leaderboard now has a base it can grow on until the end of the season.',
+ ppK4:'Rosters',ppH4:'Last week of mergers: teams go looking for each other',ppT4:'Rosters freeze on Sunday.',
+ ppK5:'Kaggle',ppH5:'Kaggle admits problems with runs. Who will give teams back their lost days?',ppT5:'Some submissions fail with a scoring error. There will be no extension.',
+ lkSens:'Sensation',lhSens:n=>`${n} tops the leaderboard`,ltSens:b=>`Best submission: ${b}.`,lkRise:'On the rise',lhRise:(n,a,b)=>`${n} climbs from #${a} to #${b}`,ltRise:b=>`The team’s best submission: ${b}.`,
+ lkLead:'New leader',lhLead:(a,b)=>`${a} overtakes ${b} for first place`,ltLead:b=>`${b} at the top.`,
+ lkJump:'Breakout',lhJump:(n,a,b)=>`${n} leaps from #${a} to #${b}`,ltJump:'The forum is guessing what they found: a new card, a fast serve or lucky noise.',
+ lkBoard:'Leaderboard',lhBoard:(n,b)=>`No change on the podium: ${n} holds ${b}`,ltBoard:(a,b)=>`Second place: ${a}. Third: ${b}.`,
+ nGold:b=>`Gold cutoff (10th place): ${b}.`,nPodium:p=>`Podium: ${p.map(x=>x.join(' ')).join(', ')}.`,nMe:(n,r,b)=>`${n}: #${r}, ${b}.`,nNone:n=>`${n}: no submissions yet.`,
+ fBreak:'The “Submission Scoring Error” thread passed a hundred replies.',ff0:'Fazan says they run x10 images and 110 lanes.',ff1:'The host confirmed: the public 25 games are easier than the hidden ones.',
+ ff2:'Someone posted a noise breakdown: the same bundle swings ±1.3.',ff3:'People argue whether RESET counts as an action. It does.',ff4:'A newbie asks where to get the hidden games’ engine. Nowhere.',
+ wBest:(n,b)=>`${n}: new best ${b}`,wQuiet:'A quiet week: not a single new record in the top 40.',
+ ev:{
+  mario:{t:'A Mario-like game',x:'One of the public 25 turns out to look like Mario. Half the forum is writing hacks for it; the other half says to just exit games like that.',c:['Take both ideas into your hand']},
+  qwen:{t:'Qwen3.8 Next Flash is out',x:'A new model with 512 experts. The forum talks of a jump of tens of percent. Some cards may break in the move.',c:['Move over','Not yet']},
+  rtx:{t:'RTX 6000s in the pool',x:'Kaggle added RTX 6000s for this competition. A notebook not attached to the competition still gets a T4.',c:['Move the notebook','Not now']},
+  paper:{t:'The competition has a newspaper',x:'One of the competitors publishes a newspaper about the leaderboard: surges, leader changes, Kaggle outages. A new issue every Monday.',c:['Open it','Later']},
+  m2:{t:'Milestone 2 is closed',x:r=>`We’re <b>#${r}</b>. ${r<=3?'A prize spot! All that’s left is to open the notebook under CC-BY 4.0.':'The prizes went to the top 3.'} The leaders’ write-ups: everyone’s agents look alike, but the top teams’ serves are twice as fast.`,c:['Open the speed path']},
+  fazan:{t:'Fazan published a notebook',x:'Fazan’s public notebook: his own fast serve, Qwen3.8, x10 images. We could move onto his base. Someone else’s code will come with defects of its own.',c:['Stay on our own','Move onto Fazan’s base']},
+  merge:{t:'Last week for mergers',x:'Team rosters freeze on Sunday. Whoever hasn’t found a team by now goes to the final as is.',c:['Got it']},
+  kbreak:{t:'Kaggle is breaking',x:'Kaggle has admitted scoring problems. Some submissions this week will fail with an error. There will be no deadline extension.',c:['Got it']},
+  offer:{t:'A merger offer',x:o=>o?`<b>${esc(o.name)}</b> (#${o.rank}, best ${o.best}) wants to team up. A teammate adds one more task a week, and the team keeps the better submission of the two.`:'The offer was withdrawn.',c:['Merge','Decline']}
+ }
+}
+};
+function tr(k,...a){let v=I18N[LANG][k];if(v===undefined)v=I18N.ru[k];return typeof v==='function'?v(...a):v===undefined?k:v}
+function tx(m){if(m==null)return'';if(Array.isArray(m))return m.map(tx).join(' ');if(typeof m!=='object')return String(m);return tr(m.k,...(m.p||[]).map(rp))}
+function rp(p){if(p==null||typeof p!=='object')return p;if(Array.isArray(p))return p.map(rp);if('k' in p)return tx(p);if('kn' in p)return kname(G.knobs[p.kn]);if('dl' in p)return dlow(p.dl);
+  if('tn' in p)return tname(p.tn);if('tf' in p)return tfail(p.tf);if('md' in p)return MODELS[p.md]?MODELS[p.md].name:p.md;if('pq' in p)return probeQ(p.pq);if('nm' in p)return nameTr(p.nm);return p}
+function kname(k){if(!k)return'';const id=k.id.split('~')[0];const d=(LANG==='en'?KEN:KRU)[id];if(!d)return k.name;if(!k.aliasOf)return d[0];const i=+k.id.slice(k.id.lastIndexOf('~')+1);return d[1][i-1]||d[0]+tr('variant2')}
+function dname(id){return LANG==='en'&&DEF_EN[id]||(DEFN[id]?DEFN[id].name:id)}
+function dlow(id){const s=dname(id);return LANG==='en'?(/^[A-Z][a-z]/.test(s)?s[0].toLowerCase()+s.slice(1):s):s.toLowerCase()}
+function tname(id){return LANG==='en'&&TECH_EN[id]||(TECHN[id]?TECHN[id].name:id)}
+function tfail(id){return LANG==='en'&&TFAIL_EN[id]||(TECHN[id]&&TECHN[id].fail)||''}
+function probeQ(id){return LANG==='en'&&PROBE_EN[id]||(PROBEN[id]?PROBEN[id].q:id)}
+function about(id){return LANG==='en'&&ABOUT_EN[id]||MODELS[id].about}
+function nameTr(n){return LANG==='en'&&NAME_EN[n]||n}
+function fd(d){const x=dOf(d);return LANG==='en'?MON_EN[x.getUTCMonth()]+' '+x.getUTCDate():fmtD(d)}
+function wkl(w){const[a,b]=wkDays(w);return fd(a)+' – '+fd(b)}
+function optText(o){const k=o.x&&G.knobs[o.x];const N=k?kname(k):'';
+  switch(o.act){
+    case'write':return[tr('oWriteT',N),tr('oWriteW',pct(k.prior,0))];
+    case'duck':return[tr('oDuckT',N),tr('oDuckW')];
+    case'pair':return[tr('oPairT',N),tr('oPairW')];
+    case'ab':return[tr('oAbT',N),tr('oAbW')];
+    case'ideas':return[tr('oIdeasT'),tr('oIdeasW')];
+    case'read':return[tr('oReadT'),tr('oReadW')];
+    case'hole':return[tr('oHoleT',dlow(o.x)),tr('oHoleW')];
+    case'compact':return[tr('oCompactT'),tr('oCompactW',o.c??Math.round(G.ctx*100))];
+    case'tech':{const T=TECHN[o.x];return[tr('oTechT',tname(o.x)),tr('oTechW',T.spd,T.p>=0.7?'lo':T.p>=0.5?'mid':'hi')]}
+    case'model':return o.x==='q38'?[tr('oQ38T'),tr('oQ38W')]:[tr('oModelT',MODELS[o.x].name),tr('oModelW',about(o.x))];
+    case'rtx':return[tr('oRtxT'),tr('oRtxW')];
+    case'batched':return[tr('oBatchedT'),tr('oBatchedW')];
+    case'alias':return[tr('oAliasT'),tr('oAliasW')];
+  }
+  return[tx(o.t),tx(o.w)]}
+function planText(p){if(p.kind==='agent')return[tr(p.last?'pAgentLast':'pAgent'),tr('pAgentW')];if(p.kind==='test')return[tr('pTest',kname(G.knobs[p.x])),tr('pTestW')];return[tr('pProbe',probeQ(p.x)),tr('pProbeW',p.ban)]}
+function evData(id){if(id==='m2')return G.m2.rank;if(id==='offer'){const n=G.offer&&G.npcs.find(x=>x.name===G.offer.name);return n?{name:nameTr(n.name),rank:ranking().findIndex(r=>r.name===n.name)+1,best:n.best.toFixed(2)}:null}return null}
+function langBtn(){const a=esc(tr('langAria'));return`<button class="ib" data-a="lang" aria-label="${a}" title="${a}">${tr('langBtn')}</button>`}
 const CATC={'Картинка':'#7fdbff','Промпт':'#f012be','Память':'#4a90e2','Действия':'#ff851b','Харнесс':'#aaaaaa','Мульти':'#ffdc00'};
 const ARC=['#000000','#0074d9','#ff4136','#2ecc40','#ffdc00','#aaaaaa','#f012be','#ff851b','#7fdbff','#870c25'];
 const f2=x=>x.toFixed(2);
 let blink=false;
 
 function advance(){if(G.screen==='news'){G.screen=G.queue.length?'event':'work';if(G.screen==='work')G.say=workSay()}else if(G.screen==='work')G.screen='plan'}
-function workSay(){return G.ctx>0.7?'Голова гудит. Предлагаю дела, но я могу путаться.':`Неделя ${G.week+1}. Выбери ${G.left===1?'одно дело':G.left+' '+plural(G.left,'дело','дела','дел')} из трёх.`}
+function workSay(){return G.ctx>0.7?msg('wDizzy'):msg('wPick',G.week+1,G.left)}
 function evPick(i){const keep=G.say;chooseEv(i);G.screen=G.queue.length?'event':'work';if(G.screen==='work'&&G.say===keep)G.say=workSay()}
 
 const PIX=["................","...OOOOOOOOOO...","...OOOOOOOOOO...",".OOOOEOOOOEOOOO.",".OOOOEOOOOEOOOO.","...OOOOOOOOOO...","...OOOOOOOOOO...","...OOOOOOOOOO...","....O.O..O.O....","....O.O..O.O....","................"];
@@ -643,108 +875,110 @@ function drawFace(){
   const col={O:'#e5825a',E:'#1b130e',Z:'#93a0bf',S:'#7fdbff',Q:'#ffdc00'};
   g.forEach((r,y)=>r.forEach((v,i)=>{if(col[v]){x.fillStyle=col[v];x.fillRect(i*10,y*10,10,10)}}));
 }
-function host(text,html){return`<div class="host"><canvas id="face" width="160" height="110" aria-label="Claude"></canvas><div class="say"><div class="who">CLAUDE</div><div class="txt">${html?text:esc(text)}</div></div></div>`}
+function host(text,html){return`<div class="host"><canvas id="face" width="160" height="110" aria-label="Claude"></canvas><div class="say"><div class="who">CLAUDE</div><div class="txt">${html?text:esc(tx(text))}</div></div></div>`}
 
 function renderTop(){
   const rows=ranking();const rk=rows.findIndex(r=>r.me)+1;const lp=G.papers[G.papers.length-1];
   const wk=Math.min(G.week,WEEKS-1);
-  $('#top').innerHTML=`<div class="brand">ПОСЛЕДНЯЯ<br>СТАВКА</div>
-   <div class="wk"><b>НЕДЕЛЯ ${wk+1} / ${WEEKS}</b><span>${wkLabel(wk)}</span></div>
-   <div class="myrank">${G.best?`<b>#${rk}</b><span>из ${rows.length} · лучший ${f2(G.best)}</span>`:`<span>сабмитов пока нет</span>`}</div>
-   <div class="tb">${lp?`<button class="ib news" data-a="paper">Газета${(G.ui.seen||-1)<lp.w?'<i class="dot"></i>':''}</button>`:''}<button class="ib" data-a="help" aria-label="Как играть">?</button><button class="ib" data-a="newgame">Заново</button></div>`;
+  $('#top').innerHTML=`<div class="brand">${tr('brand')}</div>
+   <div class="wk"><b>${tr('week',wk+1,WEEKS)}</b><span>${wkl(wk)}</span></div>
+   <div class="myrank">${G.best?`<b>#${rk}</b><span>${tr('rankOf',rows.length,f2(G.best))}</span>`:`<span>${tr('noSubs')}</span>`}</div>
+   <div class="tb">${lp?`<button class="ib news" data-a="paper">${tr('paperBtn')}${(G.ui.seen||-1)<lp.w?'<i class="dot"></i>':''}</button>`:''}<button class="ib" data-a="help" aria-label="${esc(tr('helpAria'))}">?</button>${langBtn()}<button class="ib" data-a="newgame">${tr('restart')}</button></div>`;
 }
 function renderBezel(){
   const c=G.ctx;const col=c>0.7?'#ff4136':c>0.5?'#ff851b':'#2ecc40';
-  $('#bezel').innerHTML=`<span class="nm"><span class="led ${c>0.7?'bad':c>0.5?'warn':''}"></span>CLAUDE</span><span class="bz">контекст <span class="bar"><i style="width:${Math.round(c*100)}%;background:${col}"></i></span> ${Math.round(c*100)}%</span><span class="bz">${c>0.7?'путается и может врать':c>0.5?'начинает путаться':'голова ясная'}</span>`;
+  $('#bezel').innerHTML=`<span class="nm"><span class="led ${c>0.7?'bad':c>0.5?'warn':''}"></span>CLAUDE</span><span class="bz">${tr('ctx')} <span class="bar"><i style="width:${Math.round(c*100)}%;background:${col}"></i></span> ${Math.round(c*100)}%</span><span class="bz">${c>0.7?tr('ctxBad'):c>0.5?tr('ctxWarn'):tr('ctxOk')}</span>`;
 }
 
 function dotsSVG(L){
   const dots=L.dots;const W=600,H=170,ml=40,mr=118,mt=14,mb=26;const vals=dots.filter(d=>d.v!=null).map(d=>d.v);
   const ymax=Math.max(1,...vals)*1.15;const y=v=>mt+(H-mt-mb)*(1-v/ymax);const n=dots.length;const x=i=>ml+(W-ml-mr)*(n===1?0.5:i/(n-1));
   const col={agent:'var(--s-agent)',with:'var(--s-with)',without:'var(--s-without)',probe:'var(--red)'};
-  const nm=L.x&&G.knobs[L.x]?G.knobs[L.x].name:'';
-  const lab={agent:'робот',with:`с «${nm}»`,without:'без',probe:'проба'};
-  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Сабмиты недели">`;
+  const nm=L.x&&G.knobs[L.x]?kname(G.knobs[L.x]):'';
+  const lab={agent:tr('cRobot'),with:tr('cWith',nm),without:tr('cWithout'),probe:tr('cProbe')};
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tr('chartAria'))}">`;
   for(const t of [0,ymax/2,ymax/1.15]){const yy=y(t);s+=`<line x1="${ml}" x2="${W-mr}" y1="${yy}" y2="${yy}" stroke="#1f3326" stroke-width="1"/><text x="${ml-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="#86a58c">${t.toFixed(t<10?1:0)}</text>`}
   const means=[];for(const kd of ['agent','with','without']){const v=dots.filter(d=>d.kind===kd&&d.v!=null);if(v.length){const m=v.reduce((a,d)=>a+d.v,0)/v.length;means.push({kd,m})}}
   means.sort((a,b)=>b.m-a.m);let lastY=-99;
-  const ml2={agent:'среднее',with:'с картой',without:'без'};
+  const ml2={agent:tr('mAgent'),with:tr('mWith'),without:tr('mWithout')};
   for(const mm of means){const yy=y(mm.m);let ly=Math.max(yy+4,lastY+14);lastY=ly;s+=`<line x1="${ml}" x2="${W-mr}" y1="${yy}" y2="${yy}" stroke="${col[mm.kd]}" stroke-width="2" stroke-dasharray="5 5" opacity=".8"/><text x="${W-mr+8}" y="${ly}" font-size="12" fill="#d3ecd3">${ml2[mm.kd]} ${mm.m.toFixed(1)}</text>`}
-  dots.forEach((d,i)=>{const xx=x(i);s+=`<text x="${xx}" y="${H-6}" text-anchor="middle" font-size="11" fill="#86a58c">${WDN[wd(d.d)]}</text>`;
-    if(d.kind==='err'){s+=`<g><title>${fmtD(d.d)}: ошибка скоринга</title><text x="${xx}" y="${H-mb-4}" text-anchor="middle" font-size="16" fill="#86a58c">×</text></g>`;return}
-    s+=`<g><title>${fmtD(d.d)}: ${d.v.toFixed(2)} (${esc(lab[d.kind])})</title><circle cx="${xx}" cy="${y(d.v)}" r="12" fill="transparent"/><circle cx="${xx}" cy="${y(d.v)}" r="6.5" fill="${col[d.kind]}" stroke="#0d150f" stroke-width="2"/></g>`;
-    if(d.kind==='probe')s+=`<text x="${xx+10}" y="${y(d.v)+4}" font-size="11" fill="#ff8f86">проба</text>`});
+  const wdn=tr('wdn');
+  dots.forEach((d,i)=>{const xx=x(i);s+=`<text x="${xx}" y="${H-6}" text-anchor="middle" font-size="11" fill="#86a58c">${wdn[wd(d.d)]}</text>`;
+    if(d.kind==='err'){s+=`<g><title>${fd(d.d)}: ${tr('errTip')}</title><text x="${xx}" y="${H-mb-4}" text-anchor="middle" font-size="16" fill="#86a58c">×</text></g>`;return}
+    s+=`<g><title>${fd(d.d)}: ${d.v.toFixed(2)} (${esc(lab[d.kind])})</title><circle cx="${xx}" cy="${y(d.v)}" r="12" fill="transparent"/><circle cx="${xx}" cy="${y(d.v)}" r="6.5" fill="${col[d.kind]}" stroke="#0d150f" stroke-width="2"/></g>`;
+    if(d.kind==='probe')s+=`<text x="${xx+10}" y="${y(d.v)+4}" font-size="11" fill="#ff8f86">${tr('cProbe')}</text>`});
   return s+'</svg>';
 }
 function screenNews(){
   const rk=rankOf();const L=G.last;
-  if(!L)return host(G.say)+`<div class="body"><ul class="lines">${G.lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul><div class="go-row"><button class="go" data-a="next">В мастерскую →</button></div></div>`;
+  if(!L)return host(G.say)+`<div class="body"><ul class="lines">${G.lines.map(l=>`<li>${esc(tx(l))}</li>`).join('')}</ul><div class="go-row"><button class="go" data-a="next">${tr('toWork')}</button></div></div>`;
   const dr=G.rankPrev-rk;const lp=G.papers[G.papers.length-1];
-  const legend=L.plan==='test'?`<div class="legend"><span><i style="background:var(--s-with)"></i>с «${esc(G.knobs[L.x].name)}»</span><span><i style="background:var(--s-without)"></i>без</span></div>`:'';
+  const legend=L.plan==='test'?`<div class="legend"><span><i style="background:var(--s-with)"></i>${esc(tr('cWith',kname(G.knobs[L.x])))}</span><span><i style="background:var(--s-without)"></i>${tr('cWithout')}</span></div>`:'';
   return host(G.say)+`<div class="body">
-    <div class="kpis"><div class="kpi"><span class="l">МЕСТО</span><span class="v">#${rk}</span>${dr?`<span class="d ${dr>0?'up':'dn'}">${dr>0?'▲':'▼'}${Math.abs(dr)}</span>`:''}</div><div class="kpi"><span class="l">ЛУЧШИЙ СЧЁТ</span><span class="v">${G.best?f2(G.best):'—'}</span></div></div>
+    <div class="kpis"><div class="kpi"><span class="l">${tr('kPlace')}</span><span class="v">#${rk}</span>${dr?`<span class="d ${dr>0?'up':'dn'}">${dr>0?'▲':'▼'}${Math.abs(dr)}</span>`:''}</div><div class="kpi"><span class="l">${tr('kBest')}</span><span class="v">${G.best?f2(G.best):'—'}</span></div></div>
     <div class="chart">${legend}${dotsSVG(L)}</div>
-    ${G.lines.length?`<ul class="lines">${G.lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>`:''}
-    ${lp&&lp.w===G.week?`<button class="strip" data-a="paper"><b>ARC-Дайджест</b><span>${esc(lp.lead.h)}</span><em>Читать →</em></button>`:''}
-    <div class="go-row"><button class="go" data-a="next">${G.queue.length?'Дальше →':'В мастерскую →'}</button></div></div>`;
+    ${G.lines.length?`<ul class="lines">${G.lines.map(l=>`<li>${esc(tx(l))}</li>`).join('')}</ul>`:''}
+    ${lp&&lp.w===G.week?`<button class="strip" data-a="paper"><b>${tr('digest')}</b><span>${esc(tx(lp.lead.h))}</span><em>${tr('readMore')}</em></button>`:''}
+    <div class="go-row"><button class="go" data-a="next">${G.queue.length?tr('nextBtn'):tr('toWork')}</button></div></div>`;
 }
 function screenEvent(){
-  const e=EV[G.queue[0]];if(!e){G.screen='work';return screenWork()}
-  return host(G.say)+`<div class="body"><h2 class="ev-t">${esc(e.t)}</h2><p class="ev-x">${typeof e.x==='function'?e.x():e.x}</p>
-    <div class="ev-c">${e.c.map((c,i)=>`<button class="${i===0?'go':'go soft'}" data-a="ev" data-x="${i}">${esc(c[0])}</button>`).join('')}</div></div>`;
+  const id=G.queue[0];const e=EV[id];if(!e){G.screen='work';return screenWork()}
+  const E=I18N[LANG].ev[id];const x=typeof E.x==='function'?E.x(evData(id)):E.x;
+  return host(G.say)+`<div class="body"><h2 class="ev-t">${esc(E.t)}</h2><p class="ev-x">${x}</p>
+    <div class="ev-c">${e.c.map((c,i)=>`<button class="${i===0?'go':'go soft'}" data-a="ev" data-x="${i}">${esc(E.c[i])}</button>`).join('')}</div></div>`;
 }
 function cardHTML(k,where){
   const v=honest(k);const idea=k.status==='idea';let m,lo,hi;
   if(v){m=v.m;lo=v.m-2*v.se;hi=v.m+2*v.se}else{m=k.prior;lo=k.prior-0.08;hi=k.prior+0.08}
   const X=t=>clamp((t+0.15)/0.3,0,1)*100;const cls=!v?'dash':lo>0?'pos':hi<0?'neg':'';
   const wt=k.tok<=0.02?'':k.tok<=0.1?'●':k.tok<=0.25?'●●':'●●●';
-  const tip=`${k.name}\n${v?`замеров ${v.n}: ${pct(v.m)} ± ${ppm(2*v.se)}`:idea?`идея, по ощущениям ${pct(k.prior,0)}`:'ещё не мерили'}${wt?`\nтяжёлая: замедляет серв`:''}`;
+  const tip=`${kname(k)}\n${v?tr('tipN',v.n,pct(v.m),ppm(2*v.se)):idea?tr('tipIdea',pct(k.prior,0)):tr('tipNone')}${wt?`\n${tr('tipHeavy')}`:''}`;
   const a=where==='robot'?'unslot':idea?'hint':'slot';
   return`<button class="kc ${idea?'idea':''} ${k.bug&&k.bugShown?'bug':''}" style="--c:${CATC[k.cat]}" data-a="${a}" data-x="${esc(k.id)}" title="${esc(tip)}">
-    <span class="kc-n">${esc(k.name)}</span>
+    <span class="kc-n">${esc(kname(k))}</span>
     <span class="kb"><i class="mid"></i><i class="rng ${cls}" style="left:${X(lo)}%;width:${Math.max(2,X(hi)-X(lo))}%"></i>${v?`<i class="pt" style="left:${X(m)}%"></i>`:''}</span>
-    <span class="kc-f"><span>${v?'замеров '+v.n:idea?'идея':'не мерили'}</span><span>${wt}</span></span></button>`;
+    <span class="kc-f"><span>${v?tr('footN',v.n):idea?tr('footIdea'):tr('footNone')}</span><span>${wt}</span></span></button>`;
 }
 function screenWork(){
-  const e=evalB(snap());const slots=[];for(let i=0;i<6;i++){const id=G.robot[i];slots.push(id?cardHTML(G.knobs[id],'robot'):'<div class="slot" aria-label="пустой слот">+</div>')}
+  const e=evalB(snap());const slots=[];for(let i=0;i<6;i++){const id=G.robot[i];slots.push(id?cardHTML(G.knobs[id],'robot'):`<div class="slot" aria-label="${esc(tr('emptySlot'))}">+</div>`)}
   const pips='⚡'.repeat(G.left)+'<span style="opacity:.25">'+'⚡'.repeat(Math.max(0,G.picks-G.left))+'</span>';
-  const opts=G.left>0&&G.opts.length?`<div class="opts">${G.opts.map((o,i)=>`<button class="opt" data-a="opt" data-x="${i}"><span class="k">${i+1}</span><b>${esc(o.t)}</b><span>${esc(o.w)}</span><span class="pip">${'⚡'.repeat(o.cost)}</span></button>`).join('')}</div>`:`<div class="done">Дела на эту неделю сделаны. Можно переставить карты и идти к сабмитам.</div>`;
+  const opts=G.left>0&&G.opts.length?`<div class="opts">${G.opts.map((o,i)=>{const[t,w]=optText(o);return`<button class="opt" data-a="opt" data-x="${i}"><span class="k">${i+1}</span><b>${esc(t)}</b><span>${esc(w)}</span><span class="pip">${'⚡'.repeat(o.cost)}</span></button>`}).join('')}</div>`:`<div class="done">${tr('tasksDone')}</div>`;
   return host(G.say)+`<div class="body">
-    <div class="lbl">РОБОТ-АГЕНТ<span class="meter">${esc(MODELS[G.model].name)} · скорость <span class="bar"><i style="width:${clamp(e.S/2.5,0.03,1)*100}%"></i></span> ${f2(e.S)} фазана</span></div>
+    <div class="lbl">${tr('robotLbl')}<span class="meter">${esc(MODELS[G.model].name)} · ${tr('speed')} <span class="bar"><i style="width:${clamp(e.S/2.5,0.03,1)*100}%"></i></span> ${tr('fazans',f2(e.S))}</span></div>
     <div class="robot">${slots.join('')}</div>
-    ${G.hand.length?`<div class="lbl">РУКА<span>нажми готовую карту, чтобы поставить в робота; карту в роботе, чтобы вынуть</span></div><div class="hand">${G.hand.map(id=>cardHTML(G.knobs[id],'hand')).join('')}</div>`:''}
-    <div class="lbl">ДЕЛА НА НЕДЕЛЮ<span style="font-size:15px">${pips}</span></div>
+    ${G.hand.length?`<div class="lbl">${tr('handLbl')}<span>${tr('handHint')}</span></div><div class="hand">${G.hand.map(id=>cardHTML(G.knobs[id],'hand')).join('')}</div>`:''}
+    <div class="lbl">${tr('tasksLbl')}<span style="font-size:15px">${pips}</span></div>
     ${opts}
-    <div class="go-row"><button class="${G.left?'go soft':'go'}" data-a="next">К сабмитам →</button></div></div>`;
+    <div class="go-row"><button class="${G.left?'go soft':'go'}" data-a="next">${tr('toSubs')}</button></div></div>`;
 }
 function screenPlan(){
   const P=planOpts();const last=G.week>=WEEKS-1;
-  return host(last?'Последняя неделя сезона. Что отправляем?':inBreak(wkDays(G.week)[1])||G.week===W.BREAK?'Пятница. Kaggle на этой неделе ломается, часть сабмитов пропадёт. Что отправляем?':'Пятница. Что сабмитим на этой неделе?')+`<div class="body"><div class="plans">${P.map((p,i)=>`<button class="pl ${p.kind==='agent'?'main':p.kind==='probe'?'cheat':''}" data-a="plan" data-x="${i}"><span class="k">${i+1}</span><span><b>${esc(p.t)}</b><span>${esc(p.w)}</span></span></button>`).join('')}</div>
-    <div class="go-row" style="justify-content:flex-start"><button class="link" data-a="back">← назад в мастерскую</button></div></div>`;
+  return host(last?tr('planLast'):inBreak(wkDays(G.week)[1])||G.week===W.BREAK?tr('planBreak'):tr('planFri'))+`<div class="body"><div class="plans">${P.map((p,i)=>{const[t,w]=planText(p);return`<button class="pl ${p.kind==='agent'?'main':p.kind==='probe'?'cheat':''}" data-a="plan" data-x="${i}"><span class="k">${i+1}</span><span><b>${esc(t)}</b><span>${esc(w)}</span></span></button>`}).join('')}</div>
+    <div class="go-row" style="justify-content:flex-start"><button class="link" data-a="back">${tr('back')}</button></div></div>`;
 }
 function screenFinal(){
   const T=finalTop();
-  return host(G.say)+`<div class="body"><div class="lbl">ДВА ФИНАЛЬНЫХ САБМИТА<span>по умолчанию два лучших</span></div>
-   <div class="picks">${T.map(({s,i})=>`<button class="pk" data-a="pick" data-x="${i}" aria-pressed="${G.fpicks.includes(i)}"><span>неделя ${s.w+1} · ${fmtD(s.d)}</span><b>${f2(s.v)}</b></button>`).join('')}</div>
-   <div class="go-row"><button class="go" data-a="reveal">Вскрыть приватный борд →</button></div></div>`;
+  return host(G.say)+`<div class="body"><div class="lbl">${tr('finalLbl')}<span>${tr('finalDef')}</span></div>
+   <div class="picks">${T.map(({s,i})=>`<button class="pk" data-a="pick" data-x="${i}" aria-pressed="${G.fpicks.includes(i)}"><span>${tr('pickRow',s.w+1,fd(s.d))}</span><b>${f2(s.v)}</b></button>`).join('')}</div>
+   <div class="go-row"><button class="go" data-a="reveal">${tr('revealBtn')}</button></div></div>`;
 }
 function screenOver(){
   const F=G.final;const r=F.rank;
-  const title=r===1?'Ты выиграл ARC Prize.':r<=5?'Призовое место. Открывай код под CC-BY 4.0.':r<=10?'Топ-10. Золото.':r<=25?'Серебряная зона.':r<=50?'Середина борда.':'Хвост борда.';
+  const title=tr(r===1?'o1':r<=5?'o5':r<=10?'o10':r<=25?'o25':r<=50?'o50':'oTail');
   const top=F.rows.slice(0,8);const me=F.rows.find(x=>x.me);if(!top.includes(me))top.push(me);
   const X=t=>clamp((t+0.15)/0.3,0,1)*100;
   const truth=G.robot.map(id=>{const k=G.knobs[id];const B=base(k);let t=B.eff+B.dev[G.model];if(B.id==='overfit')t=0.035*G.probes;const v=honest(k);
-    return`<div class="tr"><span>${esc(k.name)}${k.aliasOf?' (дубль)':''}${k.bug?' (не доходила)':''}</span><span class="kb"><i class="mid"></i><i class="rng ${t>0?'pos':'neg'}" style="left:${Math.min(X(0),X(t))}%;width:${Math.abs(X(t)-X(0))}%"></i>${v?`<i class="pt mine" style="left:${X(v.m)}%"></i>`:''}</span><span class="${t>0?'up':'dn'}">${pct(t,0)}</span></div>`}).join('');
-  return host(`Приватный борд вскрыт. ${title}`)+`<div class="body">
-    <div class="kpis"><div class="kpi"><span class="l">ПРИВАТ</span><span class="v">#${r}</span></div><div class="kpi"><span class="l">СЧЁТ</span><span class="v">${f2(F.ours)}</span></div><div class="kpi"><span class="l">БЫЛ НА ПАБЛИКЕ</span><span class="v">#${F.pubRank}</span></div></div>
-    <table class="tbl">${top.map(x=>`<tr class="${x.me?'me':''}"><td>${x.vr}</td><td>${esc(x.name)}</td><td class="n">${f2(x.priv)}</td><td class="n ${x.pr>x.vr?'up':x.pr<x.vr?'dn':''}">${x.pr>x.vr?'▲'+(x.pr-x.vr):x.pr<x.vr?'▼'+(x.vr-x.pr):'·'}</td></tr>`).join('')}</table>
-    <div class="lbl">ПРАВДА О ТВОЁМ РОБОТЕ<span>полоса — настоящий эффект, жёлтая черта — твой замер</span></div>
-    <div class="truth">${truth||'<span>Робот пустой.</span>'}</div>
-    <div class="go-row"><button class="go" data-a="newgame">Новая игра</button></div></div>`;
+    return`<div class="tr"><span>${esc(kname(k))}${k.aliasOf?tr('dup'):''}${k.bug?tr('dead'):''}</span><span class="kb"><i class="mid"></i><i class="rng ${t>0?'pos':'neg'}" style="left:${Math.min(X(0),X(t))}%;width:${Math.abs(X(t)-X(0))}%"></i>${v?`<i class="pt mine" style="left:${X(v.m)}%"></i>`:''}</span><span class="${t>0?'up':'dn'}">${pct(t,0)}</span></div>`}).join('');
+  return host(tr('overSay',title))+`<div class="body">
+    <div class="kpis"><div class="kpi"><span class="l">${tr('kPriv')}</span><span class="v">#${r}</span></div><div class="kpi"><span class="l">${tr('kScore')}</span><span class="v">${f2(F.ours)}</span></div><div class="kpi"><span class="l">${tr('kPub')}</span><span class="v">#${F.pubRank}</span></div></div>
+    <table class="tbl">${top.map(x=>`<tr class="${x.me?'me':''}"><td>${x.vr}</td><td>${esc(nameTr(x.name))}</td><td class="n">${f2(x.priv)}</td><td class="n ${x.pr>x.vr?'up':x.pr<x.vr?'dn':''}">${x.pr>x.vr?'▲'+(x.pr-x.vr):x.pr<x.vr?'▼'+(x.vr-x.pr):'·'}</td></tr>`).join('')}</table>
+    <div class="lbl">${tr('truthLbl')}<span>${tr('truthHint')}</span></div>
+    <div class="truth">${truth||`<span>${tr('emptyRobot')}</span>`}</div>
+    <div class="go-row"><button class="go" data-a="newgame">${tr('newGame')}</button></div></div>`;
 }
 function screenBanned(){
-  return host('Нас забанили.')+`<div class="body"><h2 class="ev-t">БАН</h2><p class="ev-x">Kaggle заметил, что наши сабмиты нарочно валят игры, и заблокировал команду за пробинг лидерборда. Бан прилетел на ${G.probes+1}-й пробе, на неделе ${G.week+1}.</p>
-    <div class="go-row"><button class="go" data-a="newgame">Новая игра</button></div></div>`;
+  return host(tr('banSay'))+`<div class="body"><h2 class="ev-t">${tr('banT')}</h2><p class="ev-x">${tr('banX',G.probes+1,G.week+1)}</p>
+    <div class="go-row"><button class="go" data-a="newgame">${tr('newGame')}</button></div></div>`;
 }
 function renderScreen(){
   const s=G.screen;
@@ -755,32 +989,30 @@ function arcArt(seed){let s=seed||1;const r=()=>{s=(Math.imul(s,1664525)+1013904
   return g.map(c=>`<i style="background:${ARC[c]}"></i>`).join('')}
 function paperHTML(){
   const P=G.papers;if(!P.length)return'';const i=clamp(G.ui.pi??P.length-1,0,P.length-1);const e=P[i];
-  return`<div class="paper"><div class="p-top"><span>Выпуск №${e.n}</span><span>понедельник, ${fmtD(wkDays(e.w)[0])} 2026</span><span>Еженедельник</span></div>
-    <div class="p-mast">ARC-Дайджест</div><div class="p-sub">О борде ARC-AGI-3 · места предварительные до вскрытия приватного борда</div>
-    <div class="p-cols"><article class="p-lead"><div class="p-ill" aria-hidden="true">${arcArt(e.art)}</div><div class="p-kicker">${esc(e.lead.k)}</div><h3>${esc(e.lead.h)}</h3><p>${esc(e.lead.t)}</p></article>
-    <aside><h4>Главное</h4><ul>${e.news.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><h4 style="margin-top:12px">Лента</h4><ul>${e.wire.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><h4 style="margin-top:12px">С форума</h4><ul>${e.forum.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></aside></div>
-    <div class="p-foot">Внутриигровая газета, все команды вымышлены. Отсылка к The ARC Daily Digest Марка Барни: <a href="https://arc.markbarney.net/news" target="_blank" rel="noopener">arc.markbarney.net/news</a></div></div>
-    <div class="p-nav"><button class="go soft" data-a="pprev" ${i<=0?'disabled':''}>← Прошлый</button><button class="go" data-a="closeModal">Закрыть</button><button class="go soft" data-a="pnext" ${i>=P.length-1?'disabled':''}>Следующий →</button></div>`;
+  return`<div class="paper"><div class="p-top"><span>${tr('issue',e.n)}</span><span>${tr('pDate',fd(wkDays(e.w)[0]))}</span><span>${tr('weekly')}</span></div>
+    <div class="p-mast">${tr('digest')}</div><div class="p-sub">${tr('pSub')}</div>
+    <div class="p-cols"><article class="p-lead"><div class="p-ill" aria-hidden="true">${arcArt(e.art)}</div><div class="p-kicker">${esc(tx(e.lead.k))}</div><h3>${esc(tx(e.lead.h))}</h3><p>${esc(tx(e.lead.t))}</p></article>
+    <aside><h4>${tr('hMain')}</h4><ul>${e.news.map(x=>`<li>${esc(tx(x))}</li>`).join('')}</ul><h4 style="margin-top:12px">${tr('hWire')}</h4><ul>${e.wire.map(x=>`<li>${esc(tx(x))}</li>`).join('')}</ul><h4 style="margin-top:12px">${tr('hForum')}</h4><ul>${e.forum.map(x=>`<li>${esc(tx(x))}</li>`).join('')}</ul></aside></div>
+    <div class="p-foot">${tr('pFoot')}<a href="https://arc.markbarney.net/news" target="_blank" rel="noopener">arc.markbarney.net/news</a></div></div>
+    <div class="p-nav"><button class="go soft" data-a="pprev" ${i<=0?'disabled':''}>${tr('pPrev')}</button><button class="go" data-a="closeModal">${tr('close')}</button><button class="go soft" data-a="pnext" ${i>=P.length-1?'disabled':''}>${tr('pNext')}</button></div>`;
 }
 function startHTML(){
-  const o=[['copy','Скопировать победителя M1','Старт около 5 очков. В чужом коде спрятаны дефекты.'],['merge','Слить публичные ноутбуки','Шесть карт сразу, дефектов больше, кто-то из карт вредит.'],['scratch','Писать с нуля','Старт ниже. Три дыры, которые надо закрыть самому.'],['post','Пост «ищу команду»','База победителя M1, и сразу придут предложения.']];
-  return`<h2>ПОСЛЕДНЯЯ СТАВКА</h2><p>1 июля 2026. Milestone 1 позади, лидеры на 6–7 очках. Ты, Claude и 99 команд. 18 недель до финала, а финал решит приватный борд на других 55 играх.</p>
-   <label class="field" for="nick">ТВОЙ НИК<input id="nick" maxlength="24" placeholder="tile_rookie" autocomplete="off"></label>
-   <div class="starts">${o.map(([k,t,d])=>`<button class="pl" data-a="start" data-x="${k}"><span><b>${t}</b><span>${d}</span></span></button>`).join('')}</div>`;
+  return`<div class="shead"><h2>${tr('sTitle')}</h2>${langBtn()}</div><p>${tr('sIntro')}</p>
+   <label class="field" for="nick">${tr('nick')}<input id="nick" maxlength="24" placeholder="tile_rookie" autocomplete="off"></label>
+   <div class="starts">${tr('starts').map(([k,t,d])=>`<button class="pl" data-a="start" data-x="${k}"><span><b>${t}</b><span>${d}</span></span></button>`).join('')}</div>`;
 }
-function helpHTML(){return`<h2>КАК ИГРАТЬ</h2><ol class="rules">
-  <li>Каждая неделя — три экрана: понедельник (что вышло), мастерская (два дела из трёх, что предложил Claude), пятница (что сабмитим).</li>
-  <li>Карты в роботе меняют счёт на скрытый процент. Полоса на карте — что ты о ней знаешь: широкая, пока мало замеров, зелёная или красная, когда ясно.</li>
-  <li>Тесты шумят. Утки дешёвые, но немного врут. Сабмит-тест честный, но шумный. Чит-проба точная, но может закончиться баном.</li>
-  <li>Когда у Claude большой контекст, он путается и может предложить ерунду или соврать про результат.</li>
-  <li>Тяжёлые карты (●●●) замедляют серв. После Milestone 2 откроется ускорение серва.</li></ol>
-  <div class="go-row"><button class="go" data-a="closeModal">Понятно</button></div>`}
+function helpHTML(){return`<h2>${tr('hTitle')}</h2><ol class="rules">
+  ${tr('rules').map(r=>`<li>${r}</li>`).join('\n  ')}</ol>
+  <div class="go-row"><button class="go" data-a="closeModal">${tr('gotIt')}</button></div>`}
 function renderModal(){
   const el=$('#modal');const m=G.ui.modal;let h='',cls='card';
   if(m==='start')h=startHTML();else if(m==='help')h=helpHTML();else if(m==='paper'&&G.papers.length){h=paperHTML();cls='card paperc'}
   if(!h){el.hidden=true;el.innerHTML='';el.dataset.k='';return}
-  if(m==='start'&&!el.hidden&&el.dataset.k==='start')return;
-  el.dataset.k=m;el.hidden=false;el.innerHTML=`<div class="${cls}" role="dialog" aria-modal="true">${h}</div>`;
+  const key=m+':'+LANG;
+  if(m==='start'&&!el.hidden&&el.dataset.k===key)return;
+  const nk=$('#nick'),nv=m==='start'&&nk?nk.value:null;
+  el.dataset.k=key;el.hidden=false;el.innerHTML=`<div class="${cls}" role="dialog" aria-modal="true">${h}</div>`;
+  if(nv!=null&&$('#nick'))$('#nick').value=nv;
 }
 function render(){renderTop();renderScreen();renderBezel();renderModal();drawFace()}
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(G))}catch(e){}}
@@ -789,10 +1021,10 @@ const ACT={
   start(x){const nm=($('#nick')||{}).value;newGame(x,nm);G.ui.modal=null},newgame(){G.ui.modal='start'},help(){G.ui.modal='help'},closeModal(){G.ui.modal=null},
   paper(){G.ui.modal='paper';G.ui.pi=G.papers.length-1;G.ui.seen=G.papers[G.papers.length-1].w},pprev(){G.ui.pi=Math.max(0,(G.ui.pi??0)-1)},pnext(){G.ui.pi=Math.min(G.papers.length-1,(G.ui.pi??0)+1)},
   next(){advance()},back(){if(G.screen==='plan')G.screen='work'},ev(x){evPick(+x)},opt(x){doOpt(+x)},
-  slot(x){if(!slotCard(x)&&G.robot.length>=6)G.say='В роботе нет места. Сначала вынь карту, нажав на неё.'},unslot(x){unslotCard(x)},hint(){G.say='Это пока идея. Чтобы карта появилась, её надо написать: такое дело я предложу в «Делах на неделю».'},
-  plan(x){runWeek(+x)},pick(x){togglePick(x)},reveal(){finalReveal()}
+  slot(x){if(!slotCard(x)&&G.robot.length>=6)G.say=msg('slotFull')},unslot(x){unslotCard(x)},hint(){G.say=msg('hint')},
+  plan(x){runWeek(+x)},pick(x){togglePick(x)},reveal(){finalReveal()},lang(){setLang(LANG==='en'?'ru':'en')}
 };
-function act(a,x){const f=ACT[a];if(!f||!G)return;try{f(x)}catch(err){console.error(err)}save();render()}
+function act(a,x){const f=ACT[a];if(!f||!G)return;try{f(x)}catch(err){console.error(err)}if(a!=='lang')save();render()}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;act(b.dataset.a,b.dataset.x)});
 document.addEventListener('keydown',e=>{if(!G||e.target.tagName==='INPUT')return;
   if(!$('#modal').hidden){if(e.key==='Escape'&&G.ui.modal!=='start')act('closeModal');return}
@@ -800,7 +1032,7 @@ document.addEventListener('keydown',e=>{if(!G||e.target.tagName==='INPUT')return
   else if(k==='Enter'&&(G.screen==='news'||G.screen==='work'))act('next')});
 
 function boot(){let s=null;try{s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null')}catch(e){}
-  if(s&&s.v===5)G=s;else{newGame('copy');G.ui.modal='start'}render()}
+  if(s&&s.v===5)G=s;else{newGame('copy');G.ui.modal='start'}applyLang();render()}
 boot();
 try{const hot=window.claude&&window.claude.hot;if(hot&&typeof hot.snapshot==='function')hot.snapshot(()=>({G}));if(hot&&typeof hot.ready==='function')hot.ready(d=>{if(d&&d.G&&d.G.v===5){G=d.G;render()}})}catch(e){}
 if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)setInterval(()=>{if(!G)return;blink=true;drawFace();setTimeout(()=>{blink=false;drawFace()},140)},3800);
