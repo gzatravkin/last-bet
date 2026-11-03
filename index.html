@@ -1,0 +1,809 @@
+<meta charset="utf-8">
+<title>Последняя ставка</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Press+Start+2P&family=Old+Standard+TT:wght@400;700&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Вся игра внутри бежевого монитора Claude. Один экран = одна мысль: понедельник, мастерская, пятница. Тёмный мир, акцент ARC-жёлтый. */
+:root{
+  color-scheme: dark;
+  --ink:#10141f;
+  --grid:#151b2a;
+  --text:#e8ebf4;
+  --muted:#8f9bba;
+  --plastic:#dcd4c1;
+  --plastic-d:#b8ae97;
+  --plastic-ink:#463f33;
+  --screen:#0b120e;
+  --phos:#d3ecd3;
+  --phos-dim:#86a58c;
+  --phos-line:#2b4636;
+  --cell:#0f1913;
+  --claude:#e5825a;
+  --yellow:#ffdc00;
+  --green:#2ecc40;
+  --red:#ff4136;
+  --cyan:#7fdbff;
+  --s-with:#b08a00;
+  --s-without:#3b95c6;
+  --s-agent:#8fc49a;
+  --paper:#f0ead9;
+  --paper-ink:#1e1a14;
+  --paper-rule:#3b342a;
+  --f-display:"Press Start 2P", ui-monospace, monospace;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --f-mast:"Old Standard TT", "Times New Roman", Georgia, serif;
+  --f-news:"PT Serif", Georgia, "Times New Roman", serif;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;background-color:var(--ink);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:32px 32px;
+  color:var(--text);font-family:var(--f-mono);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 32px;
+}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.wrap{max-width:940px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px}
+.brand{font-family:var(--f-display);font-size:11px;line-height:1.6;color:var(--yellow)}
+.wk{display:flex;flex-direction:column}
+.wk b{font-family:var(--f-display);font-size:10px;line-height:1.8}
+.wk span{font-size:12px;color:var(--muted)}
+.myrank{margin-left:auto;display:flex;align-items:baseline;gap:10px;font-variant-numeric:tabular-nums}
+.myrank b{font-family:var(--f-display);font-size:14px;color:var(--yellow)}
+.myrank span{font-size:12px;color:var(--muted)}
+.tb{display:flex;gap:6px}
+.ib{background:#1a2136;border:1px solid #2d3754;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;font-weight:600}
+.ib:hover{border-color:var(--cyan)}
+.ib.news{background:var(--paper);color:var(--paper-ink);border-color:var(--paper);font-family:var(--f-mast);font-size:14px;font-weight:700}
+.ib .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-left:6px;vertical-align:1px}
+
+.crt{background:var(--plastic);border-radius:24px 24px 30px 30px;padding:16px 16px 10px;box-shadow:inset 0 -8px 0 var(--plastic-d),0 12px 0 #080b13}
+.screen{background:var(--screen);border-radius:16px;padding:22px;box-shadow:inset 0 0 0 3px #2b2a22,inset 0 0 80px rgba(0,0,0,.8);color:var(--phos);position:relative;overflow:hidden;min-height:540px;display:flex;flex-direction:column;gap:20px}
+.screen::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px);pointer-events:none}
+.host{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center}
+#face{width:132px;height:91px;image-rendering:pixelated;display:block}
+.say .who{font:8px var(--f-display);color:var(--claude);letter-spacing:.16em;margin-bottom:8px}
+.say .txt{font-size:17px;line-height:1.55;max-width:56ch;text-wrap:pretty}
+.body{display:flex;flex-direction:column;gap:18px;flex:1}
+.lbl{font:8px var(--f-display);letter-spacing:.14em;color:var(--phos-dim);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.lbl span{font:12px var(--f-mono);letter-spacing:0;color:var(--phos-dim)}
+.go-row{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:auto}
+.go{background:var(--yellow);color:#1c1700;border:none;border-radius:8px;padding:13px 22px;font:600 15px var(--f-mono);cursor:pointer;box-shadow:0 4px 0 #7d6c00}
+.go:active{transform:translateY(2px);box-shadow:0 2px 0 #7d6c00}
+.go.soft{background:#16241b;color:var(--phos);box-shadow:none;border:1px solid var(--phos-line)}
+.go.soft:hover{border-color:var(--phos)}
+.go:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.link{background:none;border:none;color:var(--phos-dim);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px 0;font-size:13px}
+
+.kpis{display:flex;flex-wrap:wrap;gap:16px 40px;align-items:flex-end}
+.kpi .l{font:8px var(--f-display);letter-spacing:.14em;color:var(--phos-dim);display:block;margin-bottom:10px}
+.kpi .v{font:30px var(--f-display);color:#fff;font-variant-numeric:tabular-nums}
+.kpi .d{font:600 15px var(--f-mono);margin-left:12px}
+.up{color:var(--green)}.dn{color:#ff7a70}
+.lines{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:var(--phos-dim)}
+.lines li::before{content:"› ";color:#4b6b55}
+.chart{border:1px solid var(--phos-line);border-radius:10px;padding:12px 12px 6px;background:#0d150f}
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--phos-dim);margin-bottom:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.strip{display:flex;align-items:center;gap:12px;background:var(--paper);color:var(--paper-ink);border-radius:6px;padding:10px 14px;cursor:pointer;border:none;text-align:left;width:100%}
+.strip b{font-family:var(--f-mast);font-size:16px;flex:none}
+.strip span{font-family:var(--f-news);font-size:14.5px;flex:1;min-width:0}
+.strip em{font:600 12px var(--f-mono);font-style:normal;flex:none}
+
+.ev-t{font:15px var(--f-display);line-height:1.6;color:var(--yellow);margin:0;text-wrap:balance}
+.ev-x{font-size:16px;line-height:1.6;max-width:60ch;margin:0}
+.ev-x b{color:#fff}
+.ev-c{display:flex;gap:12px;flex-wrap:wrap}
+
+.robot{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.hand{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:8px}
+@media (max-width:720px){.robot{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.kc{position:relative;text-align:left;background:var(--cell);border:1px solid var(--phos-line);border-radius:9px;padding:9px 9px 8px 13px;display:flex;flex-direction:column;gap:7px;cursor:pointer;min-height:104px;overflow:hidden;color:var(--phos)}
+.kc:hover{border-color:var(--phos)}
+.kc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.kc.idea{border-style:dashed;cursor:default;opacity:.85}
+.kc.idea:hover{border-color:var(--phos-line)}
+.kc.bug::after{content:"✗";position:absolute;right:8px;top:6px;color:var(--red);font-weight:600}
+.kc-n{font-size:12.5px;line-height:1.3;font-weight:600;color:#eaf6ea;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.kc-f{display:flex;justify-content:space-between;font-size:11px;color:var(--phos-dim)}
+.kb{position:relative;height:10px;border-radius:5px;background:#16241b}
+.kb .mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#4b6b55}
+.kb .rng{position:absolute;top:2px;bottom:2px;border-radius:3px;background:#5b7a62}
+.kb .rng.pos{background:var(--green)}.kb .rng.neg{background:var(--red)}
+.kb .rng.dash{background:none;border:1px dashed #5b7a62}
+.kb .pt{position:absolute;top:0;width:3px;height:10px;margin-left:-1px;background:#fff;border-radius:1px}
+.slot{border:1px dashed var(--phos-line);border-radius:9px;min-height:104px;display:flex;align-items:center;justify-content:center;color:#3e5a47;font-size:22px}
+.meter{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--phos-dim)}
+.meter .bar{width:90px;height:6px;border-radius:3px;background:#16241b;overflow:hidden}
+.meter .bar i{display:block;height:100%;background:var(--cyan)}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:720px){.opts{grid-template-columns:minmax(0,1fr)}}
+.opt{position:relative;text-align:left;background:var(--cell);border:1px solid var(--phos-line);border-radius:11px;padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-height:118px;color:var(--phos);transition:transform .12s,border-color .12s,box-shadow .12s}
+.opt:hover{border-color:var(--phos);box-shadow:0 0 22px rgba(140,220,160,.14);transform:translateY(-2px)}
+.opt .k{position:absolute;top:12px;right:12px;font:8px var(--f-display);color:#4d6a56}
+.opt b{font-size:14.5px;line-height:1.35;color:#effaef;padding-right:20px;text-wrap:balance}
+.opt span{font-size:12.5px;line-height:1.45;color:var(--phos-dim)}
+.opt .pip{color:var(--yellow);font-size:13px;margin-top:auto}
+.done{font-size:14px;color:var(--phos-dim);border:1px dashed var(--phos-line);border-radius:10px;padding:16px;text-align:center}
+
+.plans{display:flex;flex-direction:column;gap:10px}
+.pl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;text-align:left;background:var(--cell);border:1px solid var(--phos-line);border-radius:12px;padding:16px 18px;cursor:pointer;color:var(--phos)}
+.pl:hover{border-color:var(--phos);box-shadow:0 0 22px rgba(140,220,160,.12)}
+.pl .k{font:9px var(--f-display);color:#4d6a56}
+.pl b{display:block;font-size:16px;color:#effaef;margin-bottom:4px}
+.pl span{font-size:13px;color:var(--phos-dim)}
+.pl.main{border-color:#7d6c00}.pl.main b{color:var(--yellow)}
+.pl.cheat{border-color:#6b2433;background:#1d0f14}.pl.cheat b{color:#ff8f86}.pl.cheat:hover{border-color:#ff8f86;box-shadow:0 0 22px rgba(255,80,80,.12)}
+
+.big{font:34px var(--f-display);color:var(--yellow);line-height:1.3}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.tbl td{padding:5px 6px;border-bottom:1px solid #1d2c22}
+.tbl td.n{text-align:right;white-space:nowrap}
+.tbl td:first-child{width:36px;color:var(--phos-dim)}
+.tbl td:nth-child(2){width:100%}
+.tbl tr.me td{color:var(--yellow);font-weight:600}
+.truth{display:flex;flex-direction:column;gap:6px}
+.tr{display:grid;grid-template-columns:minmax(0,1fr) 170px 64px;gap:12px;align-items:center;font-size:13px}
+.tr .kb .pt.mine{background:var(--yellow)}
+.picks{display:flex;flex-direction:column;gap:8px}
+.pk{display:flex;justify-content:space-between;align-items:center;background:var(--cell);border:1px solid var(--phos-line);border-radius:10px;padding:12px 16px;cursor:pointer;color:var(--phos);font-size:15px}
+.pk[aria-pressed="true"]{border-color:var(--yellow);color:var(--yellow)}
+.pk b{font:12px var(--f-display)}
+
+.bezel{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:11px 10px 3px;color:var(--plastic-ink);font:600 12px var(--f-mono)}
+.bezel .nm{font:7px var(--f-display);letter-spacing:.14em;display:flex;align-items:center;gap:8px}
+.bezel .bz{display:flex;align-items:center;gap:7px}
+.bezel .bz .bar{width:80px;height:6px;border-radius:3px;background:#c7bea8;overflow:hidden}
+.bezel .bz .bar i{display:block;height:100%}
+.led{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.led.warn{background:#ff851b;box-shadow:0 0 6px #ff851b}.led.bad{background:var(--red);box-shadow:0 0 6px var(--red)}
+
+.modal[hidden]{display:none}
+.modal{position:fixed;inset:0;z-index:40;background:rgba(5,7,13,.82);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;
+  padding:max(28px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 28px max(16px,env(safe-area-inset-left,0px))}
+.card{background:var(--screen);border:2px solid var(--phos-line);border-radius:14px;max-width:720px;width:100%;padding:24px;display:flex;flex-direction:column;gap:16px;color:var(--phos)}
+.card h2{font:13px var(--f-display);line-height:1.7;margin:0;color:var(--yellow)}
+.card p{margin:0;max-width:62ch;font-size:15px;line-height:1.55}
+.card.paperc{background:none;border:none;padding:0;max-width:900px}
+.starts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.starts{grid-template-columns:minmax(0,1fr)}}
+.field{display:flex;flex-direction:column;gap:6px;font:8px var(--f-display);letter-spacing:.12em;color:var(--phos-dim)}
+.field input{font:16px var(--f-mono);background:var(--cell);color:var(--phos);border:1px solid var(--phos-line);border-radius:8px;padding:10px 12px;max-width:320px;letter-spacing:0}
+.rules{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:14.5px;line-height:1.55}
+
+.paper{background:var(--paper);color:var(--paper-ink);border-radius:3px;padding:18px 20px 16px;font-family:var(--f-news);font-size:15px;line-height:1.5;box-shadow:0 10px 0 rgba(0,0,0,.5);display:flex;flex-direction:column;gap:12px}
+.paper a{color:var(--paper-ink)}
+.p-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;font-size:12px;border-bottom:1px solid var(--paper-rule);padding-bottom:5px}
+.p-mast{font-family:var(--f-mast);font-weight:700;font-size:clamp(30px,6vw,52px);line-height:1;text-align:center;margin:4px 0 0}
+.p-sub{text-align:center;font-style:italic;font-size:13px;border-bottom:3px double var(--paper-rule);padding-bottom:8px}
+.p-cols{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px}
+@media (max-width:700px){.p-cols{grid-template-columns:minmax(0,1fr)}}
+.p-lead h3{font-family:var(--f-mast);font-weight:700;font-size:clamp(22px,3.4vw,30px);line-height:1.12;margin:8px 0 6px;text-wrap:balance}
+.p-lead p{margin:0}
+.p-kicker{font:700 11px var(--f-news);letter-spacing:.12em;text-transform:uppercase;color:#7a2a1a}
+.p-ill{display:grid;grid-template-columns:repeat(24,1fr);gap:1px;background:#2a2620;padding:1px;border:1px solid var(--paper-rule)}
+.p-ill i{display:block;aspect-ratio:1}
+.paper h4{font:700 12px var(--f-news);letter-spacing:.12em;text-transform:uppercase;margin:0 0 6px;border-bottom:1px solid var(--paper-rule);padding-bottom:3px}
+.paper ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:5px;font-size:14px}
+.p-foot{border-top:1px solid var(--paper-rule);padding-top:6px;font-size:12px;font-style:italic}
+.p-nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
+
+@media (max-width:640px){
+  .screen{padding:16px;gap:16px;min-height:0}
+  .host{grid-template-columns:minmax(0,1fr);gap:10px}
+  #face{width:96px;height:66px}
+  .say .txt{font-size:15.5px}
+  .kpi .v{font-size:24px}
+  .myrank{margin-left:0}
+  .opt{min-height:0}
+  .opt .pip{margin-top:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top" id="top"></header>
+  <section class="crt" aria-label="Монитор Claude"><div class="screen" id="screen"></div><div class="bezel" id="bezel"></div></section>
+</div>
+<div class="modal" id="modal" hidden></div>
+<script>
+(()=>{
+"use strict";
+/*ENGINE*/
+const D0=Date.UTC(2026,6,1);
+const WEEKS=18, LASTDAY=124;
+const W={MARIO:3,QWEN:7,RTX:10,PAPER:11,M2:13,FAZAN:14,MERGE:16,BREAK:17};
+const DAY={PUB:19,QWEN:48,RTX:69,M2W:94,FAZAN:100,BREAK:118,BREAKEND:121};
+const BASE_S=0.25, SAVE_KEY='arc3-last-bet-v5';
+let KSC=22, EFF=1.6;
+const MON=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const WDN=['вс','пн','вт','ср','чт','пт','сб'];
+function dOf(d){return new Date(D0+d*864e5)}
+function fmtD(d){const x=dOf(d);return x.getUTCDate()+' '+MON[x.getUTCMonth()]}
+function wd(d){return dOf(d).getUTCDay()}
+function wkDays(w){const a=7*w;return[a,Math.min(a+6,LASTDAY)]}
+function wkLabel(w){const[a,b]=wkDays(w);return fmtD(a)+' – '+fmtD(b)}
+function inBreak(d){return d>=DAY.BREAK&&d<=DAY.BREAKEND}
+let G=null;
+function rnd(){G.rs=(G.rs+0x6D2B79F5)|0;let t=G.rs;t=Math.imul(t^(t>>>15),1|t);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}
+function gauss(){let u=0;while(u===0)u=rnd();const v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function pick(a){return a[Math.floor(rnd()*a.length)]}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+function sig(s){return 0.07+0.18*Math.exp(-s/10)}
+function pct(x,d=1){const v=x*100;return(v>=0?'+':'−')+Math.abs(v).toFixed(d)+'%'}
+function ppm(x){return Math.abs(x*100).toFixed(1)+'%'}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function plural(n,a,b,c){const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c}
+
+const MODELS={
+  gemma:{name:'Gemma 3 27B',q:1.0,v:1.0,from:0,e512:false,about:'плотная 27B, видит картинки'},
+  qwen32:{name:'Qwen3 32B',q:1.07,v:0.82,from:0,e512:false,about:'чуть умнее, заметно медленнее'},
+  a3b:{name:'Qwen3-30B-A3B',q:0.9,v:1.75,from:0,e512:false,about:'быстрая, но проще'},
+  oss:{name:'gpt-oss-20b',q:0.86,v:1.9,from:0,e512:false,about:'самая быстрая, самая простая'},
+  q38:{name:'Qwen3.8 Next Flash',q:1.72,v:1.3,from:DAY.QWEN,e512:true,about:'MoE на 512 экспертов'}
+};
+const KDEF=[
+ ['recolor','Цвета словами','Картинка',1,4,0.02,{al:['Назвать цвета текстом']}],
+ ['cblind','Палитра для дальтоников','Картинка',0,4,0,{al:['Контрастная палитра']}],
+ ['gridlines','Линии сетки','Картинка',1,3,0.01,{al:['Линии между клетками']}],
+ ['coords','Координаты по краям','Картинка',2,3,0.02,{al:['Линейка x/y']}],
+ ['moreimg','Картинка каждый ход','Картинка',3,3,0.25,{g:'imgn',al:['Больше картинок']}],
+ ['lessimg','Картинка только при изменении','Картинка',-1,3,-0.12,{g:'imgn',al:['Меньше картинок']}],
+ ['px8','Картинки 8px','Картинка',1,3,-0.07,{g:'px',al:['Клетка 8 пикселей']}],
+ ['px16','Картинки 16px','Картинка',1,3,0.16,{g:'px',al:['Крупные клетки']}],
+ ['diffimg','Картинка разницы','Картинка',3,3,0.12,{al:['Diff после хода']}],
+ ['godiff','Diff на Game Over','Картинка',1,2,0.03,{}],
+ ['textgrid','Сетка цифрами','Картинка',-2,5,-0.1,{g:'repr',al:['Текст вместо картинки']}],
+ ['textimg','Цифры и картинка','Картинка',2,3,0.2,{g:'repr',al:['Текст плюс картинка']}],
+ ['hilite','Подсветка изменений','Картинка',2,3,0.02,{al:['Рамка вокруг изменений']}],
+ ['objects','Список объектов','Картинка',2,4,0.08,{al:['Сегментация объектов']}],
+ ['rle','Сжатие сетки RLE','Картинка',-1,3,-0.06,{}],
+ ['frames','Кадры анимации','Картинка',1,3,0.15,{al:['Три последних кадра']}],
+ ['zoom','Зум на объекте','Картинка',1,3,0.1,{}],
+ ['reconsider','«Let me reconsider»','Промпт',0,4,0.03,{al:['«Перепроверь себя»']}],
+ ['shortsys','Короткий промпт','Промпт',0,3,-0.05,{al:['Сжатый системный промпт']}],
+ ['actinfo','Описание кнопок','Промпт',1,2,0.01,{al:['Подробные действия']}],
+ ['interact','INTERACT и CLICK','Промпт',2,3,0,{g:'names',al:['Человеческие имена действий']}],
+ ['space','SPACE и MOUSE','Промпт',-1,3,0,{g:'names'}],
+ ['fewshot','Пример хода в промпте','Промпт',-6,3,0.04,{al:['Образец ответа']}],
+ ['goalturn','Цель в каждом ходе','Промпт',2,3,0.03,{al:['Напоминание цели']}],
+ ['hyplog','Журнал гипотез','Память',3,4,0.1,{al:['Список гипотез']}],
+ ['norepeat','Не повторять действие','Действия',-1,4,0,{al:['Запрет повторов']}],
+ ['thinkmore','Думать дольше','Промпт',5,3,0.4,{g:'think',al:['Двойной бюджет мыслей']}],
+ ['thinkless','Думать короче','Промпт',-3,3,-0.25,{g:'think'}],
+ ['t06','Температура 0.6','Промпт',0,3,0,{g:'temp'}],
+ ['t10','Температура 1.0','Промпт',-1,3,0,{g:'temp'}],
+ ['plain','Tool result без JSON','Харнесс',0,3,-0.02,{al:['Текстовый tool result']}],
+ ['resetwhy','RESET с причиной','Действия',2,4,0.01,{al:['Сброс с объяснением']}],
+ ['memlvl','Память между уровнями','Память',4,4,0.06,{al:['Перенос знаний']}],
+ ['review','Разбор после уровня','Память',3,3,0.08,{al:['Итоги уровня']}],
+ ['summary','Резюме вместо истории','Память',1,4,-0.15,{al:['Сжатая история']}],
+ ['trim','Обрезка контекста','Харнесс',-1,3,-0.2,{}],
+ ['ctx110','Контекст 110K','Харнесс',9,3,0.45,{g:'ctx',al:['Длинный контекст']}],
+ ['ctx150','Контекст 150K','Харнесс',11,4,0.65,{g:'ctx',needS:1.0}],
+ ['undo','Подсказка про Undo','Действия',1,3,0,{}],
+ ['clickall','Перебор кликов','Действия',-3,5,-0.05,{al:['Кликнуть всё']}],
+ ['actcount','Счётчик действий','Промпт',1,2,0.01,{}],
+ ['budgetwarn','«Действия в квадрате»','Промпт',2,3,0.01,{al:['Бюджет действий']}],
+ ['explorer','Разведчик без модели','Действия',3,5,-0.05,{al:['Случайный старт']}],
+ ['loopdet','Детектор цикла','Харнесс',2,3,0,{al:['Ловить зацикливание']}],
+ ['mask','Маска действий','Харнесс',0,5,-0.02,{}],
+ ['stuckrand','Случайный ход в тупике','Действия',-2,3,0,{}],
+ ['replayseq','Повтор удачного решения','Действия',3,4,0,{al:['Сыграть решение заново']}],
+ ['reset50','Сброс через 50 ходов','Действия',1,4,0,{}],
+ ['rulecode','Правила кодом','Харнесс',4,5,0.15,{al:['Симулятор правил']}],
+ ['sandbox','Песочница Python','Харнесс',3,5,0.1,{}],
+ ['keepthink','Мысли в истории','Память',-2,4,0.3,{g:'thist'}],
+ ['cutthink','История без мыслей','Память',2,3,-0.2,{g:'thist',al:['Вырезать reasoning']}],
+ ['goalfirst','«Ищи цель, не броди»','Промпт',1,4,0,{}],
+ ['marioexit','Похоже на Марио: exit','Действия',0,6,-0.03,{ev:'mario'}],
+ ['mariohack','Хак под «Марио»','Действия',12,2,0.02,{ev:'mario',priv:-22}],
+ ['overfit','Подгонка под публичный борд','Действия',0,0,0,{ev:'probe'}],
+ ['photo','Фотограф уровней','Мульти',2,3,0.1,{needS:0.6}],
+ ['helpers','Помощники','Мульти',-2,4,0.25,{needS:0.8}],
+ ['forum','Форум копий','Мульти',3,3,0.15,{needS:1.0,priv:-4}],
+ ['duel','Агент-опровергатель','Мульти',3,5,0.2,{needS:1.2}],
+ ['forks','Форки-исследователи','Мульти',4,5,0.25,{needS:1.5}],
+ ['moreimg8','x8 картинки всегда','Картинка',4,3,0.3,{needS:1.2}]
+];
+const SYN=[
+ {k:['gridlines','coords'],e:0.03,name:'Линии сетки и координаты'},
+ {k:['recolor','cblind'],e:-0.045,name:'Цвета словами и палитра дальтоников'},
+ {k:['thinkmore','ctx110'],e:0.03,name:'Думать дольше и контекст 110K'},
+ {k:['diffimg','hilite'],e:-0.025,name:'Картинка разницы и подсветка'},
+ {k:['memlvl','review'],e:0.03,name:'Память и разбор уровня'},
+ {k:['rulecode','sandbox'],e:0.03,name:'Правила кодом и песочница'},
+ {k:['loopdet','norepeat'],e:-0.03,name:'Детектор цикла и запрет повторов'}
+];
+const DEFS=[
+ ['late','Картинка приходит на ход позже',-0.09,0,0],['xy','В клике перепутаны x и y',-0.07,0,0],['resethist','RESET не попадает в историю',-0.04,0,0],
+ ['trimgoal','Обрезка съедает цель уровня',-0.06,0,0],['lostmsg','Tool result теряет сообщение',-0.05,0,0],['gameover','Модель не видит Game Over',-0.05,0,0],
+ ['dupsys','Промпт уходит дважды',-0.02,0.12,0],['imgcache','Кэш картинок промахивается',0,0,-0.12],['cutreason','Мысли обрезаются',-0.06,0,0],['seedmiss','Кэш компиляции не грузится',0,0,-0.08]
+];
+const SCRATCH=[['nohist','Нет истории ходов',-0.25,0,0],['noimg','Модель не видит картинку',-0.18,0,0],['noreset','Нет кнопки RESET',-0.1,0,0]];
+const DEFN={};[...DEFS,...SCRATCH].forEach(d=>DEFN[d[0]]={id:d[0],name:d[1],q:d[2],tok:d[3],spd:d[4]});
+const TECH=[
+ {id:'cache',name:'Кэш компиляции',p:0.85,spd:1.05,q:1},
+ {id:'graphs',name:'CUDA-графы',p:0.75,spd:1.15,q:1},
+ {id:'kv8',name:'KV int8',p:0.7,spd:1.25,q:0.99},
+ {id:'prefix',name:'Префикс-кэш',p:0.75,spd:1.18,q:1},
+ {id:'rotation',name:'Ротация сессий',p:0.7,spd:1.1,q:1},
+ {id:'lanes45',name:'Линии 28 → 45',p:0.7,spd:1.3,q:1,pre:['kv8'],note:'открывает точные парные тесты'},
+ {id:'mtp',name:'Спекуляция MTP',p:0.55,spd:1.35,q:1,pre:['graphs']},
+ {id:'hostkv',name:'KV в RAM',p:0.6,spd:1.12,q:1},
+ {id:'lanes110',name:'Линии 45 → 110',p:0.55,spd:1.3,q:1,pre:['lanes45','hostkv']},
+ {id:'drafter',name:'Свой драфтер',p:0.5,spd:1.15,q:1,pre:['mtp']},
+ {id:'kv4',name:'KV int4',p:0.45,spd:1.15,q:0.97,pre:['kv8']},
+ {id:'w4a8',name:'Веса W4A8',p:0.35,spd:1.2,q:0.98},
+ {id:'cut400',name:'Нарезка экспертов 512 → 400',p:0.7,spd:1.3,q:0.955,e512:true},
+ {id:'hot512',name:'Горячий возврат к 512',p:0.5,spd:1.0,q:1.035,pre:['cut400'],e512:true},
+ {id:'kd',name:'Дистилляция роутера',p:0.08,spd:1.04,q:1,pre:['cut400'],e512:true,fail:'дрейф не ниже, чем у простой нарезки'},
+ {id:'reap',name:'REAP-эксперты',p:0,spd:1,q:1,pre:['cut400'],e512:true,fail:'дрейф хуже простой нарезки'}
+];
+const TECHN={};TECH.forEach(t=>TECHN[t.id]=t);
+const PROBES=[
+ {id:'click',q:'игра с кликами',k:['interact','space','clickall','coords','zoom'],n:[18,30]},
+ {id:'anim',q:'в игре анимация',k:['frames','diffimg','hilite','godiff'],n:[10,22]},
+ {id:'mario',q:'похоже на Марио',k:['marioexit','mariohack'],n:[2,6]},
+ {id:'long',q:'уровень длиннее 200 ходов',k:['budgetwarn','reset50','ctx110','summary','trim'],n:[12,25]},
+ {id:'zero',q:'мы на нуле после 100 ходов',k:['explorer','stuckrand','loopdet','norepeat'],n:[15,35]}
+];
+const PROBEN={};PROBES.forEach(p=>PROBEN[p.id]=p);
+const COPY=['gridlines','goalturn','hyplog','fewshot','t06'];
+const M1=['interact','memlvl','diffimg','ctx110','thinkmore','review','cblind','recolor'];
+const M2W=['photo','helpers','forum','duel','forks','moreimg8','ctx150'];
+const FAILS=['vLLM упал: переполнился пул KV','в датасете не оказалось патчей','900 секунд без единой строки в логе','ядро умеет только BF16','качество поплыло, откатили'];
+const FORUM_FLUFF=['Фазан пишет, что у них картинки x10 и 110 линий.','Хост подтвердил: публичные 25 игр проще скрытых.','Кто-то выложил разбор шума: одна и та же пуля даёт ±1.3.','Спорят, считать ли RESET действием. Считать.','Новичок спрашивает, где взять движок скрытых игр. Нигде.'];
+const NAMES=['Фазан','duck_herder','Zero-Shot Zebras','tile_whisperer','monte_carlo_moth','ARCtic Fox','pixel_priest','Team Dropout','undo undo undo','ACTION7','random_walkers','kv_cache_me_outside','eight_bit_owl','lane_110','MambaManager OOM','prefix_hit','Колмогоров и сыновья','Ленивые эксперты','Квантованный енот','ночной деплой','Grid Goblins','the reconsiderers','RESET is an action','squared denominator','level_idx + 1','Tufted Puffins','sparse but smart','Пятничный пуш','human baseline','QSA enjoyers','ExactFit','Hot Swap Heroes','Saturday Quota','no internet no problem','Tokens per Level','Bayesian Badgers','Плато','Гусь-исследователь','Ctrl+Z','BFS is all you need','Абстракция и Ко','Exploration Bonus','Ducks All The Way Down','cosine annealed','Spiral Eyes','Prefill Pirates','Mixture of Lemurs','Router Drift','Speculative Sloths','graphs_on','Кэш промахнулся','Holdout Hounds','Fifty-Five Hidden','Sokoban Survivors','Tiny Recursion','agentic alpaca','ГПУ-часы','QUEUED forever','dir-mode zip','Nine Hours Exactly','Ночной дозор','Плотные и злые','torch.compile ждёт','Сеточники','Pixel Peepers','LoRA Rangers','int4 or bust','Overfit Owls','The Undoers'];
+
+function newGame(start,nick){
+  const seed=(Math.random()*4294967296)>>>0;const name=String(nick||'').trim().slice(0,28)||'Новичок';
+  G={v:5,seed,rs:seed,week:0,screen:'news',start,team:name,picks:2,left:2,ctx:0.15,model:'gemma',mq:{},rtx:false,speedOpen:false,
+    tech:{},knobs:{},order:[],hand:[],robot:[],defects:[],probes:0,probeDone:{},hidden:{},npcs:[],best:0,rankPrev:100,last:null,subs:[],
+    mates:[],queue:[],offer:null,papers:[],opts:[],say:'',lines:[],stats:{tests:0,lies:0,bugs:0},final:null,fpicks:[],ui:{}};
+  for(const m in MODELS)G.mq[m]=MODELS[m].q*Math.exp(gauss()*0.05);
+  for(const d of KDEF)addKnob(d);
+  for(const t of TECH)G.tech[t.id]={st:'idle',tries:0};
+  for(const p of PROBES)G.hidden[p.id]=p.n[0]+Math.floor(rnd()*(p.n[1]-p.n[0]+1));
+  const dp=shuffle(DEFS.map(d=>d[0]));const addDef=(id,known)=>G.defects.push({id,name:DEFN[id].name,known:!!known,fixed:false});
+  if(start==='scratch'){SCRATCH.forEach(d=>addDef(d[0],true));addDef(dp[0])}
+  else if(start==='merge'){dp.slice(0,4).forEach(id=>addDef(id));['fewshot',...shuffle(Object.values(G.knobs).filter(k=>!k.needS&&!k.ev&&k.id!=='fewshot').map(k=>k.id))].slice(0,6).forEach(id=>preCard(id))}
+  else{dp.slice(0,3).forEach(id=>addDef(id));COPY.forEach(id=>preCard(id))}
+  for(const id of shuffle(M1.slice()).slice(0,4))reveal(G.knobs[id]);
+  makeNPCs();
+  G.say=`Привет, ${name}! Milestone 1 позади, лидеры борда на 6–7 очках. Наш робот собран из чужого ноутбука. Каждую неделю я предложу три дела, а ты выберешь два.`;
+  if(start==='scratch')G.say=`Привет, ${name}! Пишем с нуля: в роботе пока три дыры. Закроем их, потом начнём набирать карты.`;
+  G.lines=['Цель: финал 2 ноября, 18 недель.','Карты в роботе меняют счёт на скрытый процент. Узнать его можно только тестами, а они шумят.','Вечером в пятницу решаем, что сабмитить всю неделю.'];
+  if(start==='post'){G.lines.push('Пост «ищу команду» висит на форуме. Ответы придут на днях.');maybeOffer()}
+  makeOpts();
+}
+function addKnob(d){
+  const[id,name,cat,mu,sd,tok,o]=d;const eff=(mu+sd*gauss())*EFF/100;const dev={};for(const m in MODELS)dev[m]=gauss()*(0.35*sd+0.5)/100;
+  G.knobs[id]={id,name,cat,tok,g:o.g||null,eff,dev,priv:((o.priv||0)+gauss()*0.8)/100,duckB:gauss()*0.02,rehB:gauss()*0.022,prior:eff+gauss()*0.06,
+    status:'hidden',bug:null,tests:[],al:(o.al||[]).slice(),alN:0,needS:o.needS||0,ev:o.ev||null,aliasOf:null};
+}
+function preCard(id){const k=G.knobs[id];if(!k||k.status!=='hidden'||G.robot.length>=6)return;if(k.g&&G.robot.some(x=>G.knobs[x].g===k.g))return;k.status='ready';G.order.push(id);G.robot.push(id)}
+function base(k){return k.aliasOf?G.knobs[k.aliasOf]:k}
+function handIdeas(){return G.hand.filter(id=>G.knobs[id].status==='idea')}
+function reveal(k){if(!k||k.status!=='hidden')return false;k.status='idea';if(!G.order.includes(k.id))G.order.push(k.id);G.hand.push(k.id);
+  while(G.hand.length>8){const old=G.hand.find(id=>G.knobs[id].status==='idea');if(!old)break;G.hand=G.hand.filter(x=>x!==old);G.knobs[old].status='hidden'}return true}
+function hiddenPool(){return Object.values(G.knobs).filter(k=>k.status==='hidden'&&!k.aliasOf&&!k.ev&&(!k.needS||G.speedOpen))}
+function makeAlias(bid){const b=G.knobs[bid];if(!b||b.alN>=Math.max(1,b.al.length))return null;const name=b.al[b.alN]||(b.name+', вариант 2');b.alN++;
+  const id=b.id+'~'+b.alN;const a=JSON.parse(JSON.stringify(b));Object.assign(a,{id,name,aliasOf:b.id,status:'hidden',bug:null,tests:[],prior:b.prior+gauss()*0.03});
+  G.knobs[id]=a;reveal(a);return a}
+function techOn(id){return G.tech[id]&&G.tech[id].st==='on'}
+function snap(){const bug={};for(const id of G.robot){const k=G.knobs[id];if(k.bug)bug[id]=k.bug}
+  return{model:G.model,on:G.robot.slice(),bug,def:G.defects.filter(d=>!d.fixed).map(d=>d.id),tech:Object.keys(G.tech).filter(techOn),hw:G.rtx}}
+function evalB(b,priv){
+  const m=MODELS[b.model];let Q=G.mq[b.model],tok=0,spd=BASE_S*m.v;const seen=new Set();
+  for(const id of b.on){const k=G.knobs[id];const bug=b.bug[id];if(bug==='dead')continue;const B=base(k);tok+=B.tok;if(seen.has(B.id))continue;seen.add(B.id);
+    let e=bug==='broken'?-0.045:B.eff+B.dev[b.model];if(B.id==='overfit'&&bug!=='broken'){e=0.035*G.probes;if(priv)e-=0.055*G.probes}else if(priv&&bug!=='broken')e+=B.priv;Q*=1+e}
+  for(const s of SYN)if(s.k.every(x=>seen.has(x)))Q*=1+s.e;
+  for(const id of b.def){const d=DEFN[id];Q*=1+d.q;tok+=d.tok;spd*=1+d.spd}
+  for(const id of b.tech){const t=TECHN[id];if(t.e512&&!m.e512)continue;spd*=t.spd;Q*=t.q}
+  if(b.hw)spd*=1.25;
+  const S=spd/Math.max(0.5,1+tok);const pl=S/(S+0.6);let sc=KSC*Math.max(Q,0.05)*pl;if(priv)sc*=0.93;
+  return{Q,S,spd,tok,pl,score:Math.min(100,sc)};
+}
+function withKnob(b,id,on){const nb=JSON.parse(JSON.stringify(b));const k=G.knobs[id];nb.on=nb.on.filter(x=>x!==id);
+  if(on){if(k.g)nb.on=nb.on.filter(x=>G.knobs[x].g!==k.g);nb.on.push(id);if(k.bug)nb.bug[id]=k.bug}return nb}
+function knobDelta(id){const b=snap();return evalB(withKnob(b,id,true)).score/evalB(withKnob(b,id,false)).score-1}
+function serveS(){return evalB(snap()).spd}
+function locked(k){return !!k.needS&&(!G.speedOpen||serveS()<k.needS)}
+function glitchP(){return clamp((G.ctx-0.5)*1.2,0,0.6)}
+function honest(k){if(!k.tests.length)return null;const ts=k.tests.filter(t=>t.m===G.model);const use=ts.length?ts:k.tests;let w=0,s=0;
+  for(const t of use){const wi=1/(t.sd*t.sd);w+=wi;s+=wi*t.est}const m=s/w,se=Math.sqrt(1/w);return{m,se,sig:Math.abs(m)>2*se?Math.sign(m):0,n:use.length}}
+function claim(v,lie){if(lie){const m=v.sig===0?(v.m>=0?1:-1)*Math.max(Math.abs(v.m)*2.2,2.3*v.se):-v.m;return m>0?`точно помогает, ${pct(m,0)}. Оставляем!`:`точно вредит, ${pct(m,0)}. Выкидываем!`}
+  return v.sig>0?`помогает, ${pct(v.m,0)}.`:v.sig<0?`вредит, ${pct(v.m,0)}.`:`пока шум, ${pct(v.m,0)} ± ${ppm(2*v.se)}.`}
+function addTest(k,type){const B=base(k);const sd={duck:0.05,ab:0.03,pair:0.015}[type];const bias=type==='duck'?B.duckB:type==='ab'?B.rehB:B.rehB*0.2;
+  const est=knobDelta(k.id)+bias+gauss()*sd;k.tests.push({w:G.week,t:type,est,sd,m:G.model});G.stats.tests++;return est}
+function rankOf(){return ranking().findIndex(r=>r.me)+1}
+function ranking(){const rows=G.npcs.map(n=>({name:n.name,best:n.best,y:n.y}));rows.push({name:G.team,best:G.best,y:G.bestY||0,me:true});return rows.sort((a,b)=>b.best-a.best)}
+function techAvail(id){const T=TECHN[id],t=G.tech[id];return G.speedOpen&&t.st==='idle'&&(T.pre||[]).every(p=>G.tech[p].st==='on')&&(!T.e512||MODELS[G.model].e512)}
+
+function makeOpts(){
+  const P=[];const add=(w,o)=>{o.cost=o.cost||1;if(o.cost<=G.left)P.push({w,o})};
+  const ideas=handIdeas().map(id=>G.knobs[id]).filter(k=>!locked(k));
+  shuffle(ideas).slice(0,3).forEach(k=>add(3,{act:'write',x:k.id,t:`Написать «${k.name}»`,w:`Новая карта в робота. По ощущениям ${pct(k.prior,0)}.`}));
+  const cards=[...G.robot,...G.hand].map(id=>G.knobs[id]).filter(k=>k.status==='ready');
+  const pair=techOn('lanes45');
+  cards.filter(k=>k.tests.length<5).sort((a,b)=>a.tests.length-b.tests.length).slice(0,3).forEach(k=>add(2.5,{act:pair?'pair':'duck',x:k.id,t:`${pair?'Точный тест':'Тест на утках'}: «${k.name}»`,w:pair?'Парные форки, шум ±1.5%.':'Дёшево, шум ±5%, и утки немного врут.'}));
+  const abk=cards.filter(k=>k.tests.length).sort((a,b)=>honest(b).se-honest(a).se)[0];if(abk&&!pair)add(1.4,{act:'ab',x:abk.id,t:`A/B-репетиция: «${abk.name}»`,w:'Точнее уток, шум ±3%. Займёт оба дела.',cost:2});
+  if(handIdeas().length<5)add(2,{act:'ideas',t:'Придумать новые идеи',w:'Две новые карты в руку.'});
+  add(1.6,{act:'read',t:'Прочитать запросы целиком',w:'Найду и починю, что сломано.'});
+  const hole=G.defects.find(d=>d.known&&!d.fixed);if(hole)add(5,{act:'hole',x:hole.id,t:`Закрыть дыру: ${hole.name.toLowerCase()}`,w:'Без этого агент почти слепой.'});
+  if(G.ctx>0.6)add(2.5,{act:'compact',t:'Сжать мой контекст',w:`Контекст ${Math.round(G.ctx*100)}%, я начинаю путаться.`});
+  if(G.speedOpen)shuffle(TECH.filter(t=>techAvail(t.id))).slice(0,2).forEach(t=>add(3,{act:'tech',x:t.id,t:`Ускорить серв: ${t.name}`,w:`${t.spd!==1?'Серв ×'+t.spd+'. ':''}${t.p>=0.7?'Риск низкий.':t.p>=0.5?'Риск средний.':'Риск высокий.'}`}));
+  if(MODELS.q38.from<=wkDays(G.week)[0]&&G.model!=='q38')add(2,{act:'model',x:'q38',t:'Переехать на Qwen3.8',w:'Новая модель заметно сильнее. Часть карт может сломаться.'});
+  else if(G.week>=1&&G.week<=6&&rnd()<0.35){const m=pick(['qwen32','a3b','oss'].filter(m=>m!==G.model));add(1,{act:'model',x:m,t:`Сменить модель на ${MODELS[m].name}`,w:`${MODELS[m].about[0].toUpperCase()+MODELS[m].about.slice(1)}. Часть карт может сломаться.`})}
+  if(G.week>=W.RTX&&!G.rtx)add(2,{act:'rtx',t:'Перенести ноутбук на RTX 6000',w:'Серв ×1.25.'});
+  if(rnd()<glitchP()){if(rnd()<0.5)add(5,{act:'batched',t:'Поднять max_num_batched_tokens',w:'Мы этого никогда не пробовали! +10% скорости.',lie:true});
+    else{const t=cards.filter(k=>k.tests.length>=2&&k.alN<k.al.length);if(t.length)add(5,{act:'alias',x:pick(t).id,t:'Новая идея, которой у нас не было',w:'Мы такого никогда не пробовали, уверен!',lie:true})}}
+  const out=[],used=new Set();
+  while(out.length<3&&P.length){const tw=P.reduce((a,p)=>a+p.w,0);let r=rnd()*tw,i=0;for(;i<P.length-1;i++){r-=P[i].w;if(r<=0)break}
+    const o=P.splice(i,1)[0].o;const key=o.act+':'+(o.x||'');if(used.has(key))continue;used.add(key);out.push(o)}
+  G.opts=out;
+}
+function doOpt(i){
+  if(G.screen!=='work')return false;const o=G.opts[+i];if(!o||o.cost>G.left)return false;
+  G.left-=o.cost;G.ctx=Math.min(1,G.ctx+0.16*o.cost);if(o.lie)G.stats.lies++;
+  const k=o.x&&G.knobs[o.x];
+  switch(o.act){
+    case'write':{k.status='ready';const p=0.08+0.25*Math.max(0,G.ctx-0.4);if(rnd()<p){k.bug=rnd()<0.6?'dead':'broken';G.stats.bugs++}
+      if(G.robot.length<6&&!(k.g&&G.robot.some(x=>G.knobs[x].g===k.g))){G.hand=G.hand.filter(x=>x!==k.id);G.robot.push(k.id);G.say=`Готово, «${k.name}» стоит в роботе. Тесты зелёные.`}
+      else G.say=`Готово, «${k.name}» лежит в руке: в роботе нет места. Вынь что-нибудь, если хочешь её поставить.`;break}
+    case'duck':case'ab':case'pair':{addTest(k,o.act);const v=honest(k);const lie=rnd()<glitchP();if(lie)G.stats.lies++;
+      G.say=`${o.act==='duck'?'Утки':o.act==='ab'?'Репетиция':'Точный тест'} по «${k.name}»: ${claim(v,lie)}`;break}
+    case'ideas':{const pool=shuffle(hiddenPool()).slice(0,2);pool.forEach(reveal);G.say=pool.length?`Две идеи в руке: «${pool.map(x=>x.name).join('» и «')}».`:'Идеи кончились.';break}
+    case'alias':{const a=makeAlias(o.x);G.say=a?`Новая идея: «${a.name}». Мы такого никогда не пробовали!`:'Ничего нового не придумал.';break}
+    case'read':{const found=[];const hid=G.defects.filter(d=>!d.fixed&&!d.known);if(hid.length&&rnd()<0.5){const d=pick(hid);d.fixed=true;found.push(d.name.toLowerCase())}
+      for(const id of [...G.robot,...G.hand]){const c=G.knobs[id];if(c.bug&&rnd()<0.6){c.bug=null;found.push(`«${c.name}» не доходила до модели`)}}
+      G.say=found.length?`Нашёл и починил: ${found.join('; ')}.`:'Прочитал три запроса целиком. Всё на месте.';break}
+    case'hole':{const d=G.defects.find(x=>x.id===o.x);if(d)d.fixed=true;G.say=`Закрыл: ${d.name.toLowerCase()}. Теперь агент это видит.`;break}
+    case'compact':G.ctx=0.12;G.say='Контекст сжат. Голова ясная.';break;
+    case'tech':{const T=TECHN[o.x],t=G.tech[o.x];const p=T.p<=0?0:Math.min(0.92,T.p+0.15*t.tries);
+      if(rnd()<p){t.st='on';G.say=`«${T.name}» работает${T.spd!==1?`: серв ×${T.spd}`:''}.`}else{t.tries++;G.say=`«${T.name}» не взлетела: ${T.fail||pick(FAILS)}. Можно попробовать ещё.`}break}
+    case'model':switchModel(o.x);G.say=`Переехали на ${MODELS[o.x].name}. Старые замеры сделаны на другой модели.`;break;
+    case'rtx':G.rtx=true;G.say='Ноутбук теперь получает RTX 6000. Серв ×1.25.';break;
+    case'batched':G.say='Подняли max_num_batched_tokens. Выигрыш ноль, серв тот же.';break;
+  }
+  if(G.ctx>=1){G.ctx=0.12;G.say+=' Контекст переполнился, я его сжал.'}
+  makeOpts();return true;
+}
+function switchModel(m){G.model=m;for(const id of [...G.robot,...G.hand]){const k=G.knobs[id];if(k.status==='ready'&&!k.bug&&rnd()<0.12){k.bug='dead';G.stats.bugs++}}}
+function slotCard(id){const k=G.knobs[id];if(!k||k.status!=='ready'||!G.hand.includes(id)||G.robot.length>=6)return false;
+  if(k.g){const same=G.robot.find(x=>G.knobs[x].g===k.g);if(same){G.robot=G.robot.filter(x=>x!==same);G.hand.push(same)}}
+  G.hand=G.hand.filter(x=>x!==id);G.robot.push(id);return true}
+function unslotCard(id){if(!G.robot.includes(id))return false;G.robot=G.robot.filter(x=>x!==id);G.hand.unshift(id);
+  while(G.hand.length>8){const old=G.hand.find(x=>G.knobs[x].status==='idea');if(!old)break;G.hand=G.hand.filter(x=>x!==old);G.knobs[old].status='hidden'}return true}
+
+function planOpts(){
+  const last=G.week>=WEEKS-1;const O=[{kind:'agent',t:last?'Последняя ставка: текущий робот':'Всю неделю текущий робот',w:'Семь сабмитов, просто счёт на борд.'}];
+  if(last)return O;
+  const c=G.robot.map(id=>G.knobs[id]).sort((a,b)=>(honest(b)?honest(b).se:1)-(honest(a)?honest(a).se:1))[0];
+  if(c)O.push({kind:'test',x:c.id,t:`Сабмит-тест «${c.name}»`,w:'3 дня с картой, 4 без. Честно, на скрытых играх, но шумно.'});
+  const p=PROBES.find(p=>G.probeDone[p.id]==null);if(p)O.push({kind:'probe',x:p.id,t:`Чит-проба: if ${p.q} → fail`,w:`Узнаем, сколько таких игр и как там работают карты. Риск бана ${Math.round(banP()*100)}%.`});
+  return O;
+}
+function banP(){return Math.min(0.6,0.07+0.05*G.probes)}
+function runWeek(i){
+  if(G.screen!=='plan')return false;const plan=planOpts()[+i];if(!plan)return false;
+  const[a,b]=wkDays(G.week);G.rankPrev=rankOf();G.bestY=G.best;for(const n of G.npcs){n.y=n.best}
+  const bA=snap(),eA=evalB(bA),pA=evalB(bA,true);let eW,eWo,pW,pWo;
+  if(plan.kind==='test'){const bW=withKnob(bA,plan.x,true),bWo=withKnob(bA,plan.x,false);eW=evalB(bW);eWo=evalB(bWo);pW=evalB(bW,true);pWo=evalB(bWo,true)}
+  const dots=[];let nw=0;
+  for(let d=a;d<=b;d++){let kind='agent',e=eA,p=pA;const i2=d-a;
+    if(plan.kind==='test'){kind=i2%2===0&&nw<3?'with':'without';if(kind==='with'){nw++;e=eW;p=pW}else{e=eWo;p=pWo}}
+    if(plan.kind==='probe'&&i2===0)kind='probe';
+    stepNPCs(d);
+    if(inBreak(d)&&rnd()<0.4){dots.push({d,kind:'err'});continue}
+    if(kind==='probe'){dots.push({d,kind,v:Math.max(0.1,eA.score*(1-0.9*G.hidden[plan.x]/55)*Math.exp(gauss()*sig(eA.score)))});continue}
+    const v=Math.min(100,e.score*Math.exp(gauss()*sig(e.score)));dots.push({d,kind,v});G.subs.push({w:G.week,d,v,priv:p.score,kind});if(v>G.best)G.best=v}
+  const last={w:G.week,plan:plan.kind,dots,x:plan.x||null,lines:[]};
+  if(plan.kind==='test'){const k=G.knobs[plan.x];const W_=dots.filter(x=>x.kind==='with'),WO=dots.filter(x=>x.kind==='without');
+    if(W_.length&&WO.length){const mw=W_.reduce((s,x)=>s+x.v,0)/W_.length,mo=WO.reduce((s,x)=>s+x.v,0)/WO.length;const sd=sig(eA.score)*Math.sqrt(1/W_.length+1/WO.length);
+      k.tests.push({w:G.week,t:'board',est:mw/mo-1,sd,m:G.model});G.stats.tests++;last.test={name:k.name,mw,mo,est:mw/mo-1,sd}}}
+  if(plan.kind==='probe'){const P=PROBEN[plan.x];if(rnd()<banP()){G.screen='banned';G.last=last;return true}
+    G.probes++;G.probeDone[plan.x]=G.hidden[plan.x];last.probe={q:P.q,n:G.hidden[plan.x]};
+    for(const id of P.k){const k=G.knobs[id];if(!k)continue;if(k.status==='hidden')reveal(k);k.tests.push({w:G.week,t:'intel',est:knobDelta(id)+gauss()*0.015,sd:0.015,m:G.model});G.stats.tests++}
+    reveal(G.knobs.overfit)}
+  G.last=last;newWeek();return true;
+}
+function newWeek(){
+  G.week++;
+  if(G.week>=WEEKS){G.screen='final';G.fpicks=finalDefault();G.say='Всё, сабмиты закрыты. Выбери два финальных, и вскроем приватный борд.';return}
+  G.picks=2+Math.min(2,G.mates.length);G.left=G.picks;G.lines=[];const L=G.last;const rk=rankOf();
+  if(L.test)G.lines.push(`Сабмит-тест «${L.test.name}»: с картой ${L.test.mw.toFixed(2)}, без ${L.test.mo.toFixed(2)}, разница ${pct(L.test.est,0)} ± ${ppm(2*L.test.sd)}.`);
+  if(L.probe)G.lines.push(`Проба «${L.probe.q}»: таких игр в публичных 55 около ${L.probe.n}. Бан не прилетел. Связанные карты получили точный замер.`);
+  if(L.dots.some(x=>x.kind==='err'))G.lines.push(`Kaggle потерял ${L.dots.filter(x=>x.kind==='err').length} сабмитов с ошибкой скоринга.`);
+  const w=G.week;
+  if(w===W.MARIO)G.queue.push('mario');if(w===W.QWEN)G.queue.push('qwen');if(w===W.RTX)G.queue.push('rtx');if(w===W.PAPER)G.queue.push('paper');
+  if(w===W.M2){G.m2={rank:rk,best:G.best};G.queue.push('m2')}
+  if(w===W.M2+1){for(const id of M2W)reveal(G.knobs[id]);G.lines.push('Вышли райтапы Milestone 2: в руке мульти-агентные идеи. Им нужен быстрый серв.')}
+  if(w===W.FAZAN)G.queue.push('fazan');if(w===W.MERGE)G.queue.push('merge');if(w===W.BREAK)G.queue.push('kbreak');
+  if(rnd()<0.35)randomEvent();
+  maybeOffer();
+  if(w>=W.PAPER)makePaper();
+  const dr=G.rankPrev-rk;
+  G.say=L.plan==='probe'?'Пронесло. Но каждая следующая проба опаснее.':dr>=5?`Отличная неделя: мы поднялись на ${dr} ${plural(dr,'место','места','мест')}!`:dr>0?`Чуть подросли: плюс ${dr} ${plural(dr,'место','места','мест')}.`:dr<0?`Нас обошли: минус ${-dr} ${plural(-dr,'место','места','мест')}. Другие тоже не спят.`:'Стоим на месте. Шум борда съел нашу неделю.';
+  if(w===WEEKS-1)G.say+=' Это последняя неделя сезона.';
+  makeOpts();G.screen='news';
+}
+function randomEvent(){const E=[
+  ()=>{const k=pick(hiddenPool());if(!k)return;reveal(k);G.lines.push(`Форум: кто-то хвалит «${k.name}». Карта в руке.`)},
+  ()=>{const n=G.npcs[5+Math.floor(rnd()*20)];if(!n)return;n.steps.push({d:wkDays(G.week)[0],m:1.2+0.15*rnd()});G.lines.push(`${n.name} резко поднялись на борде. Что они нашли?`)},
+  ()=>{if(G.left>1){G.left--;G.lines.push('Протух токен Kaggle, полдня на починку: на этой неделе на одно дело меньше.')}},
+  ()=>{if(G.mates.length){const m=pick(G.mates);const c=G.robot.map(id=>G.knobs[id])[0];if(c){addTest(c,'duck');G.lines.push(`${m.name} прогнали «${c.name}» на своём стенде. Замер в карте.`)}}}
+ ];pick(E)()}
+function maybeOffer(){
+  if(G.week>W.MERGE||G.offer||G.mates.length>=7)return;const rk=rankOf();
+  let ch=!G.best?0:rk<=5?0.35:rk<=15?0.22:rk<=30?0.08:0.03;if(G.start==='post'&&G.week<=1)ch=0.8;if(rnd()>=ch)return;
+  const rows=ranking();const lo=G.best?Math.max(rk<=10?2:4,rk-6):40,hi=G.best?rk+30:rows.length;
+  const c=rows.map((r,i)=>({r,i:i+1})).filter(x=>!x.r.me&&x.i>=lo&&x.i<=hi);if(!c.length)return;G.offer={name:pick(c).r.name};G.queue.push('offer');
+}
+function mergeNpc(n){if(!n||G.mates.length>=7)return;G.npcs=G.npcs.filter(x=>x!==n);G.mates.push({name:n.name});if(n.best>G.best)G.best=n.best;
+  const k=pick(hiddenPool());if(k)reveal(k);G.lines.push(`${n.name} теперь в команде: плюс одно дело в неделю${k?`, и они принесли идею «${k.name}»`:''}.`)}
+function acceptOffer(){const n=G.offer&&G.npcs.find(x=>x.name===G.offer.name);G.offer=null;mergeNpc(n)}
+function fazanSwitch(){['cache','graphs','kv8','prefix','mtp','rotation'].forEach(id=>G.tech[id].st='on');switchModel('q38');
+  G.defects=G.defects.filter(d=>d.fixed);shuffle(DEFS.map(d=>d[0]).filter(id=>!G.defects.some(x=>x.id===id))).slice(0,2).forEach(id=>G.defects.push({id,name:DEFN[id].name,known:false,fixed:false}));
+  for(const id of [...G.robot,...G.hand]){const k=G.knobs[id];if(k.status==='ready'&&!k.bug&&rnd()<0.3){k.bug='dead';G.stats.bugs++}}
+  G.say='Пересели на базу Фазана: его серв и Qwen3.8. Часть наших карт могла не доехать, стоит прочитать запросы.'}
+const EV={
+  mario:{t:'Игра, похожая на Марио',x:()=>'В публичных 25 нашлась игра, похожая на Марио. Половина форума пишет под неё хаки, другая половина советует просто выходить из таких игр.',c:[['Взять обе идеи в руку',()=>{reveal(G.knobs.mariohack);reveal(G.knobs.marioexit)}]]},
+  qwen:{t:'Вышла Qwen3.8 Next Flash',x:()=>'Новая модель на 512 экспертов. На форуме пишут о скачке на десятки процентов. При переезде часть карт может сломаться.',c:[['Переезжаем',()=>{switchModel('q38');G.say='Переехали на Qwen3.8. Старые замеры сделаны на другой модели.'}],['Пока нет',()=>{}]]},
+  rtx:{t:'RTX 6000 в пуле',x:()=>'Kaggle добавил RTX 6000 для этого соревнования. Ноутбук без привязки к соревнованию по-прежнему получает T4.',c:[['Переносим ноутбук',()=>{G.rtx=true}],['Не сейчас',()=>{}]]},
+  paper:{t:'У соревнования появилась газета',x:()=>'Кто-то из участников выпускает газету о борде: рывки, смены лидеров, поломки Kaggle. Новый номер каждый понедельник.',c:[['Открыть',()=>{G.ui.modal='paper';G.ui.pi=G.papers.length-1}],['Потом',()=>{}]]},
+  m2:{t:'Milestone 2 закрыт',x:()=>`Мы <b>#${G.m2.rank}</b>. ${G.m2.rank<=3?'Призовое место! Осталось открыть ноутбук под CC-BY 4.0.':'Призы ушли топ-3.'} Разбор лидеров: агенты у всех похожие, а серв у топа вдвое быстрее.`,c:[['Открыть путь скорости',()=>{G.speedOpen=true;G.say='Путь скорости открыт. Теперь я буду предлагать ускорения серва.'}]]},
+  fazan:{t:'Фазан выложил ноутбук',x:()=>'Публичный ноутбук Фазана: свой быстрый серв, Qwen3.8, картинки x10. Можно пересесть на его базу. В чужом коде будут свои дефекты.',c:[['Остаться на своём',()=>{}],['Пересесть на базу Фазана',fazanSwitch]]},
+  merge:{t:'Последняя неделя слияний',x:()=>'В воскресенье составы команд замораживаются. Кто не нашёл команду сейчас, идёт к финалу как есть.',c:[['Понятно',()=>{}]]},
+  kbreak:{t:'Kaggle ломается',x:()=>'Kaggle признал проблемы со скорингом. На этой неделе часть сабмитов упадёт с ошибкой. Продления дедлайна не будет.',c:[['Понятно',()=>{}]]},
+  offer:{t:'Предложение объединиться',x:()=>{const n=G.offer&&G.npcs.find(x=>x.name===G.offer.name);return n?`<b>${esc(n.name)}</b> (#${ranking().findIndex(r=>r.name===n.name)+1}, лучший ${n.best.toFixed(2)}) зовут в одну команду. Тиммейт даёт ещё одно дело в неделю, а команде засчитывается лучший сабмит из двух.`:'Предложение отозвано.'},c:[['Объединиться',acceptOffer],['Отказаться',()=>{G.offer=null}]]}
+};
+function chooseEv(i){const id=G.queue.shift();const e=EV[id];if(e&&e.c[+i])e.c[+i][1]();makeOpts()}
+
+function pubNB(d){return d<DAY.PUB?2.2:d<62?3.6:d<DAY.M2W+4?8.5:d<DAY.FAZAN?13:24}
+function npcTrue(n,d){let s=n.base*Math.exp(n.r*d);for(const st of n.steps)if(d>=st.d)s*=st.m;if(n.copier)s=Math.max(s,pubNB(d-n.lag)*n.cq);return Math.min(s,92)}
+function makeNPCs(){
+  const names=shuffle(NAMES.filter(x=>x!=='Фазан'));while(names.length<99)names.push(pick(['kaggler','user','team','arc','grid','agent'])+'_'+(1000+Math.floor(rnd()*9000)));names.splice(2,0,'Фазан');
+  G.npcs=[];
+  for(let i=0;i<99;i++){const top=i<30;
+    const n={name:names[i],base:7.1*Math.exp(-i*0.047)*Math.exp(gauss()*0.1),r:Math.max(0,(top?0.0045:0.003)+gauss()*0.0015),p:0.25+0.6*rnd(),copier:i>12&&rnd()<0.55,lag:2+Math.floor(rnd()*12),cq:0.5+0.45*rnd(),steps:[],best:0,y:0,h:[]};
+    if(rnd()<(top?0.8:0.4))n.steps.push({d:DAY.QWEN+3+Math.floor(rnd()*25),m:1.55+0.35*rnd()});
+    n.steps.push({d:DAY.RTX+Math.floor(rnd()*14),m:1.2});
+    if(rnd()<0.6)n.steps.push({d:DAY.M2W+2+Math.floor(rnd()*15),m:1.2+0.25*rnd()});
+    if(top&&rnd()<0.65)n.steps.push({d:95+Math.floor(rnd()*25),m:1.1+0.35*rnd()});
+    if(n.name==='Фазан'){n.r=0.0055;n.p=0.85;n.copier=false;n.steps=[{d:DAY.QWEN+4,m:1.75},{d:DAY.RTX+2,m:1.2},{d:98,m:1.35}]}
+    n.best=npcTrue(n,0)*Math.exp(Math.abs(gauss())*0.18);n.y=n.best;G.npcs.push(n)}
+}
+function stepNPCs(d){const br=inBreak(d);for(const n of G.npcs){const t=npcTrue(n,d);if(rnd()<n.p*(br?0.5:1)){const dr=Math.min(100,t*Math.exp(gauss()*sig(t)));if(dr>n.best)n.best=dr}}}
+
+function makePaper(){
+  const rows=ranking();const now={},was={};rows.forEach((r,i)=>now[r.name]=i+1);[...rows].sort((a,b)=>b.y-a.y).forEach((r,i)=>was[r.name]=i+1);
+  const w=G.week,d=wkDays(w)[0],me=G.team,f=x=>x.toFixed(2),top=rows[0],topY=[...rows].sort((a,b)=>b.y-a.y)[0];
+  const movers=rows.slice(0,30).filter(r=>!r.me).map(r=>({r,g:was[r.name]-now[r.name]})).filter(x=>x.g>0).sort((a,b)=>b.g-a.g);
+  const SP={[W.PAPER]:['Первый номер',`Сезон глазами борда: наверху ${top.name}`,`Первое место у ${top.name} с ${f(top.best)}. Мы будем писать о борде каждый понедельник. Места предварительные до вскрытия приватного борда.`],
+    [W.M2]:['Milestone 2',`${top.name} забирает первый приз Milestone 2`,`Подиум на 30 сентября: ${rows.slice(0,3).map(r=>r.name+' '+f(r.best)).join(', ')}.`],
+    [W.FAZAN]:['Форум','Фазан открывает карты: публичный ноутбук с быстрым сервом','Хвост борда получил базу, на которой можно расти до конца сезона.'],
+    [W.MERGE]:['Составы','Последняя неделя слияний: команды ищут друг друга','В воскресенье составы замораживаются.'],
+    [W.BREAK]:['Kaggle','Kaggle признаёт проблемы с ранами. Кто вернёт командам потерянные дни?','Часть сабмитов падает с ошибкой скоринга. Продления не будет.']};
+  let lead;
+  if(SP[w])lead={k:SP[w][0],h:SP[w][1],t:SP[w][2]};
+  else if(now[me]===1&&was[me]!==1)lead={k:'Сенсация',h:`${me} возглавляет борд`,t:`Лучший сабмит ${f(G.best)}.`};
+  else if(now[me]<=30&&was[me]-now[me]>=4)lead={k:'Подъём',h:`${me} поднимается с ${was[me]}-го на ${now[me]}-е место`,t:`Лучший сабмит команды ${f(G.best)}.`};
+  else if(top.name!==topY.name)lead={k:'Смена лидера',h:`${top.name} обходит ${topY.name} и выходит на первое место`,t:`${f(top.best)} на первой строчке.`};
+  else if(movers.length&&movers[0].g>=3){const m=movers[0];lead={k:'Рывок',h:`${m.r.name} прыгает с ${was[m.r.name]}-го на ${now[m.r.name]}-е место`,t:'Форум гадает, что они нашли: новую карту, быстрый серв или удачный шум.'}}
+  else lead={k:'Борд',h:`Подиум без перемен: ${top.name} держит ${f(top.best)}`,t:`Второе место у ${rows[1].name}, третье у ${rows[2].name}.`};
+  const gold=rows[9];
+  const news=[`Золотая линия (10-е место): ${f(gold.best)}.`,`Подиум: ${rows.slice(0,3).map(r=>r.name+' '+f(r.best)).join(', ')}.`,G.best?`${me}: ${now[me]}-е место, ${f(G.best)}.`:`${me} пока без сабмитов.`];
+  const forum=[inBreak(d+6)?'Тред «Submission Scoring Error» набрал сто ответов.':pick(FORUM_FLUFF)];
+  const wire=rows.slice(0,40).filter(r=>!r.me&&r.best>r.y+0.005).slice(0,4).map(r=>`${r.name}: новый лучший ${f(r.best)}`);
+  if(!wire.length)wire.push('Тихая неделя: в топ-40 ни одного нового рекорда.');
+  const cr=pick(rows.slice(0,15).filter(r=>!r.me));
+  G.papers.push({n:G.papers.length+1,w,lead,news,forum,wire,card:{name:cr.name,rank:now[cr.name],best:f(cr.best)},art:(w*7919+G.papers.length*104729)>>>0});
+  if(G.papers.length>12)G.papers.shift();
+}
+function finalDefault(){return G.subs.map((s,i)=>[s.v,i]).sort((a,b)=>b[0]-a[0]).slice(0,2).map(x=>x[1])}
+function finalTop(){return G.subs.map((s,i)=>({s,i})).sort((a,b)=>b.s.v-a.s.v).slice(0,5)}
+function togglePick(i){i=+i;const p=G.fpicks;const j=p.indexOf(i);if(j>=0)p.splice(j,1);else{if(p.length>=2)p.shift();p.push(i)}}
+function finalReveal(){
+  if(G.screen!=='final')return false;const ch=G.fpicks.map(i=>G.subs[i]).filter(Boolean);
+  const draws=ch.map(s=>Math.min(100,s.priv*Math.exp(gauss()*sig(s.priv)*0.7)));const ours=draws.length?Math.max(...draws):0;
+  const rows=G.npcs.map(n=>{const t=npcTrue(n,LASTDAY)*0.93;return{name:n.name,pub:n.best,priv:Math.min(100,Math.max(t*Math.exp(gauss()*sig(t)*0.7),t*Math.exp(gauss()*sig(t)*0.7)))}});
+  rows.push({name:G.team,pub:G.best,priv:ours,me:true});
+  const po=[...rows].sort((a,b)=>b.pub-a.pub);po.forEach((r,i)=>r.pr=i+1);rows.sort((a,b)=>b.priv-a.priv);rows.forEach((r,i)=>r.vr=i+1);
+  G.final={rows,ours,draws,rank:rows.findIndex(r=>r.me)+1,pubRank:po.findIndex(r=>r.me)+1};G.screen='over';return true;
+}
+/*END-ENGINE*/
+const $=s=>document.querySelector(s);
+const CATC={'Картинка':'#7fdbff','Промпт':'#f012be','Память':'#4a90e2','Действия':'#ff851b','Харнесс':'#aaaaaa','Мульти':'#ffdc00'};
+const ARC=['#000000','#0074d9','#ff4136','#2ecc40','#ffdc00','#aaaaaa','#f012be','#ff851b','#7fdbff','#870c25'];
+const f2=x=>x.toFixed(2);
+let blink=false;
+
+function advance(){if(G.screen==='news'){G.screen=G.queue.length?'event':'work';if(G.screen==='work')G.say=workSay()}else if(G.screen==='work')G.screen='plan'}
+function workSay(){return G.ctx>0.7?'Голова гудит. Предлагаю дела, но я могу путаться.':`Неделя ${G.week+1}. Выбери ${G.left===1?'одно дело':G.left+' '+plural(G.left,'дело','дела','дел')} из трёх.`}
+function evPick(i){const keep=G.say;chooseEv(i);G.screen=G.queue.length?'event':'work';if(G.screen==='work'&&G.say===keep)G.say=workSay()}
+
+const PIX=["................","...OOOOOOOOOO...","...OOOOOOOOOO...",".OOOOEOOOOEOOOO.",".OOOOEOOOOEOOOO.","...OOOOOOOOOO...","...OOOOOOOOOO...","...OOOOOOOOOO...","....O.O..O.O....","....O.O..O.O....","................"];
+function mood(){if(G.screen==='banned')return'tired';if(G.screen==='over'&&G.final&&G.final.rank<=10)return'happy';if(G.ctx>0.7)return'confused';if(G.screen==='news'&&G.rankPrev-rankOf()>=5)return'happy';return'ok'}
+function drawFace(){
+  const c=$('#face');if(!c||!G)return;const x=c.getContext('2d');x.clearRect(0,0,160,110);
+  const md=mood();const g=PIX.map(r=>r.split(''));const set=(cx,cy,v)=>{if(g[cy])g[cy][cx]=v};
+  if(md==='tired'){set(5,3,'O');set(10,3,'O');set(4,4,'E');set(11,4,'E');set(14,0,'Z');set(15,0,'Z');set(14,1,'Z');set(13,2,'Z');set(14,2,'Z');set(15,2,'Z')}
+  else if(md==='happy'){set(5,4,'O');set(10,4,'O');set(4,4,'E');set(6,4,'E');set(9,4,'E');set(11,4,'E')}
+  else if(md==='confused'){set(10,3,'O');set(2,1,'S');set(2,2,'S');set(13,0,'Q');set(14,0,'Q');set(14,1,'Q');set(13,2,'Q');set(13,4,'Q')}
+  if(blink&&md==='ok'){set(5,3,'O');set(10,3,'O')}
+  const col={O:'#e5825a',E:'#1b130e',Z:'#93a0bf',S:'#7fdbff',Q:'#ffdc00'};
+  g.forEach((r,y)=>r.forEach((v,i)=>{if(col[v]){x.fillStyle=col[v];x.fillRect(i*10,y*10,10,10)}}));
+}
+function host(text,html){return`<div class="host"><canvas id="face" width="160" height="110" aria-label="Claude"></canvas><div class="say"><div class="who">CLAUDE</div><div class="txt">${html?text:esc(text)}</div></div></div>`}
+
+function renderTop(){
+  const rows=ranking();const rk=rows.findIndex(r=>r.me)+1;const lp=G.papers[G.papers.length-1];
+  const wk=Math.min(G.week,WEEKS-1);
+  $('#top').innerHTML=`<div class="brand">ПОСЛЕДНЯЯ<br>СТАВКА</div>
+   <div class="wk"><b>НЕДЕЛЯ ${wk+1} / ${WEEKS}</b><span>${wkLabel(wk)}</span></div>
+   <div class="myrank">${G.best?`<b>#${rk}</b><span>из ${rows.length} · лучший ${f2(G.best)}</span>`:`<span>сабмитов пока нет</span>`}</div>
+   <div class="tb">${lp?`<button class="ib news" data-a="paper">Газета${(G.ui.seen||-1)<lp.w?'<i class="dot"></i>':''}</button>`:''}<button class="ib" data-a="help" aria-label="Как играть">?</button><button class="ib" data-a="newgame">Заново</button></div>`;
+}
+function renderBezel(){
+  const c=G.ctx;const col=c>0.7?'#ff4136':c>0.5?'#ff851b':'#2ecc40';
+  $('#bezel').innerHTML=`<span class="nm"><span class="led ${c>0.7?'bad':c>0.5?'warn':''}"></span>CLAUDE</span><span class="bz">контекст <span class="bar"><i style="width:${Math.round(c*100)}%;background:${col}"></i></span> ${Math.round(c*100)}%</span><span class="bz">${c>0.7?'путается и может врать':c>0.5?'начинает путаться':'голова ясная'}</span>`;
+}
+
+function dotsSVG(L){
+  const dots=L.dots;const W=600,H=170,ml=40,mr=118,mt=14,mb=26;const vals=dots.filter(d=>d.v!=null).map(d=>d.v);
+  const ymax=Math.max(1,...vals)*1.15;const y=v=>mt+(H-mt-mb)*(1-v/ymax);const n=dots.length;const x=i=>ml+(W-ml-mr)*(n===1?0.5:i/(n-1));
+  const col={agent:'var(--s-agent)',with:'var(--s-with)',without:'var(--s-without)',probe:'var(--red)'};
+  const nm=L.x&&G.knobs[L.x]?G.knobs[L.x].name:'';
+  const lab={agent:'робот',with:`с «${nm}»`,without:'без',probe:'проба'};
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Сабмиты недели">`;
+  for(const t of [0,ymax/2,ymax/1.15]){const yy=y(t);s+=`<line x1="${ml}" x2="${W-mr}" y1="${yy}" y2="${yy}" stroke="#1f3326" stroke-width="1"/><text x="${ml-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="#86a58c">${t.toFixed(t<10?1:0)}</text>`}
+  const means=[];for(const kd of ['agent','with','without']){const v=dots.filter(d=>d.kind===kd&&d.v!=null);if(v.length){const m=v.reduce((a,d)=>a+d.v,0)/v.length;means.push({kd,m})}}
+  means.sort((a,b)=>b.m-a.m);let lastY=-99;
+  const ml2={agent:'среднее',with:'с картой',without:'без'};
+  for(const mm of means){const yy=y(mm.m);let ly=Math.max(yy+4,lastY+14);lastY=ly;s+=`<line x1="${ml}" x2="${W-mr}" y1="${yy}" y2="${yy}" stroke="${col[mm.kd]}" stroke-width="2" stroke-dasharray="5 5" opacity=".8"/><text x="${W-mr+8}" y="${ly}" font-size="12" fill="#d3ecd3">${ml2[mm.kd]} ${mm.m.toFixed(1)}</text>`}
+  dots.forEach((d,i)=>{const xx=x(i);s+=`<text x="${xx}" y="${H-6}" text-anchor="middle" font-size="11" fill="#86a58c">${WDN[wd(d.d)]}</text>`;
+    if(d.kind==='err'){s+=`<g><title>${fmtD(d.d)}: ошибка скоринга</title><text x="${xx}" y="${H-mb-4}" text-anchor="middle" font-size="16" fill="#86a58c">×</text></g>`;return}
+    s+=`<g><title>${fmtD(d.d)}: ${d.v.toFixed(2)} (${esc(lab[d.kind])})</title><circle cx="${xx}" cy="${y(d.v)}" r="12" fill="transparent"/><circle cx="${xx}" cy="${y(d.v)}" r="6.5" fill="${col[d.kind]}" stroke="#0d150f" stroke-width="2"/></g>`;
+    if(d.kind==='probe')s+=`<text x="${xx+10}" y="${y(d.v)+4}" font-size="11" fill="#ff8f86">проба</text>`});
+  return s+'</svg>';
+}
+function screenNews(){
+  const rk=rankOf();const L=G.last;
+  if(!L)return host(G.say)+`<div class="body"><ul class="lines">${G.lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul><div class="go-row"><button class="go" data-a="next">В мастерскую →</button></div></div>`;
+  const dr=G.rankPrev-rk;const lp=G.papers[G.papers.length-1];
+  const legend=L.plan==='test'?`<div class="legend"><span><i style="background:var(--s-with)"></i>с «${esc(G.knobs[L.x].name)}»</span><span><i style="background:var(--s-without)"></i>без</span></div>`:'';
+  return host(G.say)+`<div class="body">
+    <div class="kpis"><div class="kpi"><span class="l">МЕСТО</span><span class="v">#${rk}</span>${dr?`<span class="d ${dr>0?'up':'dn'}">${dr>0?'▲':'▼'}${Math.abs(dr)}</span>`:''}</div><div class="kpi"><span class="l">ЛУЧШИЙ СЧЁТ</span><span class="v">${G.best?f2(G.best):'—'}</span></div></div>
+    <div class="chart">${legend}${dotsSVG(L)}</div>
+    ${G.lines.length?`<ul class="lines">${G.lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>`:''}
+    ${lp&&lp.w===G.week?`<button class="strip" data-a="paper"><b>ARC-Дайджест</b><span>${esc(lp.lead.h)}</span><em>Читать →</em></button>`:''}
+    <div class="go-row"><button class="go" data-a="next">${G.queue.length?'Дальше →':'В мастерскую →'}</button></div></div>`;
+}
+function screenEvent(){
+  const e=EV[G.queue[0]];if(!e){G.screen='work';return screenWork()}
+  return host(G.say)+`<div class="body"><h2 class="ev-t">${esc(e.t)}</h2><p class="ev-x">${typeof e.x==='function'?e.x():e.x}</p>
+    <div class="ev-c">${e.c.map((c,i)=>`<button class="${i===0?'go':'go soft'}" data-a="ev" data-x="${i}">${esc(c[0])}</button>`).join('')}</div></div>`;
+}
+function cardHTML(k,where){
+  const v=honest(k);const idea=k.status==='idea';let m,lo,hi;
+  if(v){m=v.m;lo=v.m-2*v.se;hi=v.m+2*v.se}else{m=k.prior;lo=k.prior-0.08;hi=k.prior+0.08}
+  const X=t=>clamp((t+0.15)/0.3,0,1)*100;const cls=!v?'dash':lo>0?'pos':hi<0?'neg':'';
+  const wt=k.tok<=0.02?'':k.tok<=0.1?'●':k.tok<=0.25?'●●':'●●●';
+  const tip=`${k.name}\n${v?`замеров ${v.n}: ${pct(v.m)} ± ${ppm(2*v.se)}`:idea?`идея, по ощущениям ${pct(k.prior,0)}`:'ещё не мерили'}${wt?`\nтяжёлая: замедляет серв`:''}`;
+  const a=where==='robot'?'unslot':idea?'hint':'slot';
+  return`<button class="kc ${idea?'idea':''} ${k.bug&&k.bugShown?'bug':''}" style="--c:${CATC[k.cat]}" data-a="${a}" data-x="${esc(k.id)}" title="${esc(tip)}">
+    <span class="kc-n">${esc(k.name)}</span>
+    <span class="kb"><i class="mid"></i><i class="rng ${cls}" style="left:${X(lo)}%;width:${Math.max(2,X(hi)-X(lo))}%"></i>${v?`<i class="pt" style="left:${X(m)}%"></i>`:''}</span>
+    <span class="kc-f"><span>${v?'замеров '+v.n:idea?'идея':'не мерили'}</span><span>${wt}</span></span></button>`;
+}
+function screenWork(){
+  const e=evalB(snap());const slots=[];for(let i=0;i<6;i++){const id=G.robot[i];slots.push(id?cardHTML(G.knobs[id],'robot'):'<div class="slot" aria-label="пустой слот">+</div>')}
+  const pips='⚡'.repeat(G.left)+'<span style="opacity:.25">'+'⚡'.repeat(Math.max(0,G.picks-G.left))+'</span>';
+  const opts=G.left>0&&G.opts.length?`<div class="opts">${G.opts.map((o,i)=>`<button class="opt" data-a="opt" data-x="${i}"><span class="k">${i+1}</span><b>${esc(o.t)}</b><span>${esc(o.w)}</span><span class="pip">${'⚡'.repeat(o.cost)}</span></button>`).join('')}</div>`:`<div class="done">Дела на эту неделю сделаны. Можно переставить карты и идти к сабмитам.</div>`;
+  return host(G.say)+`<div class="body">
+    <div class="lbl">РОБОТ-АГЕНТ<span class="meter">${esc(MODELS[G.model].name)} · скорость <span class="bar"><i style="width:${clamp(e.S/2.5,0.03,1)*100}%"></i></span> ${f2(e.S)} фазана</span></div>
+    <div class="robot">${slots.join('')}</div>
+    ${G.hand.length?`<div class="lbl">РУКА<span>нажми готовую карту, чтобы поставить в робота; карту в роботе, чтобы вынуть</span></div><div class="hand">${G.hand.map(id=>cardHTML(G.knobs[id],'hand')).join('')}</div>`:''}
+    <div class="lbl">ДЕЛА НА НЕДЕЛЮ<span style="font-size:15px">${pips}</span></div>
+    ${opts}
+    <div class="go-row"><button class="${G.left?'go soft':'go'}" data-a="next">К сабмитам →</button></div></div>`;
+}
+function screenPlan(){
+  const P=planOpts();const last=G.week>=WEEKS-1;
+  return host(last?'Последняя неделя сезона. Что отправляем?':inBreak(wkDays(G.week)[1])||G.week===W.BREAK?'Пятница. Kaggle на этой неделе ломается, часть сабмитов пропадёт. Что отправляем?':'Пятница. Что сабмитим на этой неделе?')+`<div class="body"><div class="plans">${P.map((p,i)=>`<button class="pl ${p.kind==='agent'?'main':p.kind==='probe'?'cheat':''}" data-a="plan" data-x="${i}"><span class="k">${i+1}</span><span><b>${esc(p.t)}</b><span>${esc(p.w)}</span></span></button>`).join('')}</div>
+    <div class="go-row" style="justify-content:flex-start"><button class="link" data-a="back">← назад в мастерскую</button></div></div>`;
+}
+function screenFinal(){
+  const T=finalTop();
+  return host(G.say)+`<div class="body"><div class="lbl">ДВА ФИНАЛЬНЫХ САБМИТА<span>по умолчанию два лучших</span></div>
+   <div class="picks">${T.map(({s,i})=>`<button class="pk" data-a="pick" data-x="${i}" aria-pressed="${G.fpicks.includes(i)}"><span>неделя ${s.w+1} · ${fmtD(s.d)}</span><b>${f2(s.v)}</b></button>`).join('')}</div>
+   <div class="go-row"><button class="go" data-a="reveal">Вскрыть приватный борд →</button></div></div>`;
+}
+function screenOver(){
+  const F=G.final;const r=F.rank;
+  const title=r===1?'Ты выиграл ARC Prize.':r<=5?'Призовое место. Открывай код под CC-BY 4.0.':r<=10?'Топ-10. Золото.':r<=25?'Серебряная зона.':r<=50?'Середина борда.':'Хвост борда.';
+  const top=F.rows.slice(0,8);const me=F.rows.find(x=>x.me);if(!top.includes(me))top.push(me);
+  const X=t=>clamp((t+0.15)/0.3,0,1)*100;
+  const truth=G.robot.map(id=>{const k=G.knobs[id];const B=base(k);let t=B.eff+B.dev[G.model];if(B.id==='overfit')t=0.035*G.probes;const v=honest(k);
+    return`<div class="tr"><span>${esc(k.name)}${k.aliasOf?' (дубль)':''}${k.bug?' (не доходила)':''}</span><span class="kb"><i class="mid"></i><i class="rng ${t>0?'pos':'neg'}" style="left:${Math.min(X(0),X(t))}%;width:${Math.abs(X(t)-X(0))}%"></i>${v?`<i class="pt mine" style="left:${X(v.m)}%"></i>`:''}</span><span class="${t>0?'up':'dn'}">${pct(t,0)}</span></div>`}).join('');
+  return host(`Приватный борд вскрыт. ${title}`)+`<div class="body">
+    <div class="kpis"><div class="kpi"><span class="l">ПРИВАТ</span><span class="v">#${r}</span></div><div class="kpi"><span class="l">СЧЁТ</span><span class="v">${f2(F.ours)}</span></div><div class="kpi"><span class="l">БЫЛ НА ПАБЛИКЕ</span><span class="v">#${F.pubRank}</span></div></div>
+    <table class="tbl">${top.map(x=>`<tr class="${x.me?'me':''}"><td>${x.vr}</td><td>${esc(x.name)}</td><td class="n">${f2(x.priv)}</td><td class="n ${x.pr>x.vr?'up':x.pr<x.vr?'dn':''}">${x.pr>x.vr?'▲'+(x.pr-x.vr):x.pr<x.vr?'▼'+(x.vr-x.pr):'·'}</td></tr>`).join('')}</table>
+    <div class="lbl">ПРАВДА О ТВОЁМ РОБОТЕ<span>полоса — настоящий эффект, жёлтая черта — твой замер</span></div>
+    <div class="truth">${truth||'<span>Робот пустой.</span>'}</div>
+    <div class="go-row"><button class="go" data-a="newgame">Новая игра</button></div></div>`;
+}
+function screenBanned(){
+  return host('Нас забанили.')+`<div class="body"><h2 class="ev-t">БАН</h2><p class="ev-x">Kaggle заметил, что наши сабмиты нарочно валят игры, и заблокировал команду за пробинг лидерборда. Бан прилетел на ${G.probes+1}-й пробе, на неделе ${G.week+1}.</p>
+    <div class="go-row"><button class="go" data-a="newgame">Новая игра</button></div></div>`;
+}
+function renderScreen(){
+  const s=G.screen;
+  $('#screen').innerHTML=s==='news'?screenNews():s==='event'?screenEvent():s==='work'?screenWork():s==='plan'?screenPlan():s==='final'?screenFinal():s==='over'?screenOver():screenBanned();
+}
+function arcArt(seed){let s=seed||1;const r=()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296};const W_=24,H=8;const g=new Array(W_*H).fill(0);
+  for(let k=0;k<5;k++){const c=1+Math.floor(r()*9),w=1+Math.floor(r()*6),h=1+Math.floor(r()*4),x=Math.floor(r()*(W_-w)),y=Math.floor(r()*(H-h));for(let i=x;i<x+w;i++)for(let j=y;j<y+h;j++)g[j*W_+i]=c}
+  return g.map(c=>`<i style="background:${ARC[c]}"></i>`).join('')}
+function paperHTML(){
+  const P=G.papers;if(!P.length)return'';const i=clamp(G.ui.pi??P.length-1,0,P.length-1);const e=P[i];
+  return`<div class="paper"><div class="p-top"><span>Выпуск №${e.n}</span><span>понедельник, ${fmtD(wkDays(e.w)[0])} 2026</span><span>Еженедельник</span></div>
+    <div class="p-mast">ARC-Дайджест</div><div class="p-sub">О борде ARC-AGI-3 · места предварительные до вскрытия приватного борда</div>
+    <div class="p-cols"><article class="p-lead"><div class="p-ill" aria-hidden="true">${arcArt(e.art)}</div><div class="p-kicker">${esc(e.lead.k)}</div><h3>${esc(e.lead.h)}</h3><p>${esc(e.lead.t)}</p></article>
+    <aside><h4>Главное</h4><ul>${e.news.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><h4 style="margin-top:12px">Лента</h4><ul>${e.wire.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><h4 style="margin-top:12px">С форума</h4><ul>${e.forum.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></aside></div>
+    <div class="p-foot">Внутриигровая газета, все команды вымышлены. Отсылка к The ARC Daily Digest Марка Барни: <a href="https://arc.markbarney.net/news" target="_blank" rel="noopener">arc.markbarney.net/news</a></div></div>
+    <div class="p-nav"><button class="go soft" data-a="pprev" ${i<=0?'disabled':''}>← Прошлый</button><button class="go" data-a="closeModal">Закрыть</button><button class="go soft" data-a="pnext" ${i>=P.length-1?'disabled':''}>Следующий →</button></div>`;
+}
+function startHTML(){
+  const o=[['copy','Скопировать победителя M1','Старт около 5 очков. В чужом коде спрятаны дефекты.'],['merge','Слить публичные ноутбуки','Шесть карт сразу, дефектов больше, кто-то из карт вредит.'],['scratch','Писать с нуля','Старт ниже. Три дыры, которые надо закрыть самому.'],['post','Пост «ищу команду»','База победителя M1, и сразу придут предложения.']];
+  return`<h2>ПОСЛЕДНЯЯ СТАВКА</h2><p>1 июля 2026. Milestone 1 позади, лидеры на 6–7 очках. Ты, Claude и 99 команд. 18 недель до финала, а финал решит приватный борд на других 55 играх.</p>
+   <label class="field" for="nick">ТВОЙ НИК<input id="nick" maxlength="24" placeholder="tile_rookie" autocomplete="off"></label>
+   <div class="starts">${o.map(([k,t,d])=>`<button class="pl" data-a="start" data-x="${k}"><span><b>${t}</b><span>${d}</span></span></button>`).join('')}</div>`;
+}
+function helpHTML(){return`<h2>КАК ИГРАТЬ</h2><ol class="rules">
+  <li>Каждая неделя — три экрана: понедельник (что вышло), мастерская (два дела из трёх, что предложил Claude), пятница (что сабмитим).</li>
+  <li>Карты в роботе меняют счёт на скрытый процент. Полоса на карте — что ты о ней знаешь: широкая, пока мало замеров, зелёная или красная, когда ясно.</li>
+  <li>Тесты шумят. Утки дешёвые, но немного врут. Сабмит-тест честный, но шумный. Чит-проба точная, но может закончиться баном.</li>
+  <li>Когда у Claude большой контекст, он путается и может предложить ерунду или соврать про результат.</li>
+  <li>Тяжёлые карты (●●●) замедляют серв. После Milestone 2 откроется ускорение серва.</li></ol>
+  <div class="go-row"><button class="go" data-a="closeModal">Понятно</button></div>`}
+function renderModal(){
+  const el=$('#modal');const m=G.ui.modal;let h='',cls='card';
+  if(m==='start')h=startHTML();else if(m==='help')h=helpHTML();else if(m==='paper'&&G.papers.length){h=paperHTML();cls='card paperc'}
+  if(!h){el.hidden=true;el.innerHTML='';el.dataset.k='';return}
+  if(m==='start'&&!el.hidden&&el.dataset.k==='start')return;
+  el.dataset.k=m;el.hidden=false;el.innerHTML=`<div class="${cls}" role="dialog" aria-modal="true">${h}</div>`;
+}
+function render(){renderTop();renderScreen();renderBezel();renderModal();drawFace()}
+function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(G))}catch(e){}}
+
+const ACT={
+  start(x){const nm=($('#nick')||{}).value;newGame(x,nm);G.ui.modal=null},newgame(){G.ui.modal='start'},help(){G.ui.modal='help'},closeModal(){G.ui.modal=null},
+  paper(){G.ui.modal='paper';G.ui.pi=G.papers.length-1;G.ui.seen=G.papers[G.papers.length-1].w},pprev(){G.ui.pi=Math.max(0,(G.ui.pi??0)-1)},pnext(){G.ui.pi=Math.min(G.papers.length-1,(G.ui.pi??0)+1)},
+  next(){advance()},back(){if(G.screen==='plan')G.screen='work'},ev(x){evPick(+x)},opt(x){doOpt(+x)},
+  slot(x){if(!slotCard(x)&&G.robot.length>=6)G.say='В роботе нет места. Сначала вынь карту, нажав на неё.'},unslot(x){unslotCard(x)},hint(){G.say='Это пока идея. Чтобы карта появилась, её надо написать: такое дело я предложу в «Делах на неделю».'},
+  plan(x){runWeek(+x)},pick(x){togglePick(x)},reveal(){finalReveal()}
+};
+function act(a,x){const f=ACT[a];if(!f||!G)return;try{f(x)}catch(err){console.error(err)}save();render()}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;act(b.dataset.a,b.dataset.x)});
+document.addEventListener('keydown',e=>{if(!G||e.target.tagName==='INPUT')return;
+  if(!$('#modal').hidden){if(e.key==='Escape'&&G.ui.modal!=='start')act('closeModal');return}
+  const k=e.key;if(/^[1-3]$/.test(k)){if(G.screen==='work'&&G.opts[+k-1]&&G.left>0)act('opt',String(+k-1));else if(G.screen==='plan'&&planOpts()[+k-1])act('plan',String(+k-1));else if(G.screen==='event'){const ev=EV[G.queue[0]];if(ev&&ev.c[+k-1])act('ev',String(+k-1))}}
+  else if(k==='Enter'&&(G.screen==='news'||G.screen==='work'))act('next')});
+
+function boot(){let s=null;try{s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null')}catch(e){}
+  if(s&&s.v===5)G=s;else{newGame('copy');G.ui.modal='start'}render()}
+boot();
+try{const hot=window.claude&&window.claude.hot;if(hot&&typeof hot.snapshot==='function')hot.snapshot(()=>({G}));if(hot&&typeof hot.ready==='function')hot.ready(d=>{if(d&&d.G&&d.G.v===5){G=d.G;render()}})}catch(e){}
+if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)setInterval(()=>{if(!G)return;blink=true;drawFace();setTimeout(()=>{blink=false;drawFace()},140)},3800);
+window.LB={get G(){return G},act,render};
+})();
+</script>
